@@ -8,15 +8,20 @@
 ## 1. Why Write Documentation?
 
 ```mermaid
-graph LR
-  subgraph Cost ["Relative Cost to Fix a Requirement Mistake"]
-    direction LR
-    A["📝 In Documentation<br><b>~5 Minutes</b>"] --> B["📐 In System Design<br><b>~1 Hour</b>"]
-    B --> C["💻 During Implementation<br><b>~1–2 Days</b>"]
-    C --> D["🚨 In Production<br><b>~5+ Days</b>"]
-  end
-  style A fill:#e6f4ea,stroke:#137333,stroke-width:2px
-  style D fill:#fce8e6,stroke:#c5221f,stroke-width:2px
+flowchart TD
+  A["📝 <b>Phase 1: Requirements & Documentation</b><br/>Cost to fix mistake: ~5 minutes<br/><i>(Edit text in Git before writing code)</i>"]
+  B["📐 <b>Phase 2: System Architecture & Design</b><br/>Cost to fix mistake: ~1 hour<br/><i>(Adjust component diagrams and contracts)</i>"]
+  C["💻 <b>Phase 3: Implementation & Development</b><br/>Cost to fix mistake: ~1–2 days<br/><i>(Refactor code, database models, and unit tests)</i>"]
+  D["🚨 <b>Phase 4: Live Production Environment</b><br/>Cost to fix mistake: ~5+ days<br/><i>(Emergency hotfix, data migration, downtime, user impact)</i>"]
+
+  A -->|10x Cost Multiplier| B
+  B -->|10x Cost Multiplier| C
+  C -->|10x Cost Multiplier| D
+
+  style A fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+  style B fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+  style C fill:#3b2413,stroke:#fb923c,stroke-width:2px,color:#ffffff
+  style D fill:#3f1418,stroke:#f87171,stroke-width:2px,color:#ffffff
 ```
 
 1. **Clarifies your own thinking.** Wherever you get stuck while writing is an area you don't fully understand yet. That is a great signal because you caught it before writing code.
@@ -31,27 +36,36 @@ graph LR
 
 ```mermaid
 flowchart TD
-  subgraph Step1 ["Step 1: Requirements (The 'WHAT' & 'WHY')"]
+  subgraph REQ ["STEP 1: REQUIREMENTS — Focus on WHAT & WHY"]
     direction TB
-    R1["🎯 Problem Definition"]
-    R2["👤 User Needs & Stories"]
-    R3["⚙️ Functional Capabilities"]
-    R4["📊 Non-Functional Targets (p95, SLA, Costs)"]
+    R1["🎯 <b>Problem Definition:</b> What user pain are we solving?"]
+    R2["👤 <b>User Stories:</b> Who needs this capability?"]
+    R3["⚙️ <b>Functional Requirements:</b> What must the system do?"]
+    R4["📊 <b>Non-Functional Requirements:</b> How fast, cheap, and secure?"]
     R1 --> R2 --> R3 --> R4
   end
 
-  subgraph Step2 ["Step 2: Architecture & Design (The 'HOW')"]
+  subgraph DES ["STEP 2: ARCHITECTURE & DESIGN — Focus on HOW"]
     direction TB
-    D1["🧩 Components & Containers"]
-    D2["🗄️ Database Schemas & Models"]
-    D3["🔌 APIs, Queues & Caches"]
-    D4["🛠️ Tech Stack (FastAPI, Redis, Postgres)"]
+    D1["🧩 <b>Containers & Components:</b> Frontend, API, Worker"]
+    D2["🗄️ <b>Data Models & Schemas:</b> Tables, UUIDs, RLS"]
+    D3["🔌 <b>APIs & Protocols:</b> REST, SSE Streaming, Idempotency"]
+    D4["🛠️ <b>Tech Stack:</b> FastAPI, PostgreSQL, Redis, Celery"]
     D1 --> D2 --> D3 --> D4
   end
 
-  Step1 ==>|Drives & Informs| Step2
-  style Step1 fill:#f8f9fa,stroke:#1a73e8,stroke-width:2px
-  style Step2 fill:#f8f9fa,stroke:#ea4335,stroke-width:2px
+  REQ ==>|Drives and Informs| DES
+
+  style REQ fill:#0f172a,stroke:#38bdf8,stroke-width:3px,color:#ffffff
+  style DES fill:#1e1b4b,stroke:#818cf8,stroke-width:3px,color:#ffffff
+  style R1 fill:#1e293b,stroke:#38bdf8,color:#ffffff
+  style R2 fill:#1e293b,stroke:#38bdf8,color:#ffffff
+  style R3 fill:#1e293b,stroke:#38bdf8,color:#ffffff
+  style R4 fill:#1e293b,stroke:#38bdf8,color:#ffffff
+  style D1 fill:#312e81,stroke:#818cf8,color:#ffffff
+  style D2 fill:#312e81,stroke:#818cf8,color:#ffffff
+  style D3 fill:#312e81,stroke:#818cf8,color:#ffffff
+  style D4 fill:#312e81,stroke:#818cf8,color:#ffffff
 ```
 
 | Dimension | Requirements (Step 1) | Architecture & Design (Step 2) |
@@ -69,29 +83,24 @@ flowchart TD
 ## 3. 7 Golden Rules of Documentation
 
 ```mermaid
-mindmap
-  root((7 Golden Rules))
-    Single Responsibility
-      One file = One purpose
-      Separate problem from design
-    Specific Metrics
-      Avoid vague words
-      Always use numbers e.g. p95 < 2s
-    Audience Awareness
-      Recruiter wants 30s clarity
-      Engineers want actionable specs
-    Scannability
-      One sentence = One idea
-      Short paragraphs, tables, bullets
-    Single Source of Truth
-      Link instead of copy-pasting
-      Avoid duplicate definitions
-    Empirical Assumptions
-      Concrete estimates e.g. 100 concurrent chats
-      Flag unknowns as assumptions
-    Iterative Evolution
-      Living documents in Git
-      Rough draft > Blank page
+flowchart TD
+  R1["1️⃣ <b>Single Responsibility:</b> One file = One purpose (Separate problems from design)"]
+  R2["2️⃣ <b>Specific Metrics:</b> Ban vague words (Replace 'fast' with 'p95 < 2s')"]
+  R3["3️⃣ <b>Audience Awareness:</b> Write for a busy reader (30-second clarity for recruiters)"]
+  R4["4️⃣ <b>Scannability:</b> One sentence = One idea (Use bullet points, bold tags & tables)"]
+  R5["5️⃣ <b>Single Source of Truth:</b> Link instead of duplicating (Avoid stale copies)"]
+  R6["6️⃣ <b>Empirical Numbers:</b> Concrete estimates (State unknowns explicitly as assumptions)"]
+  R7["7️⃣ <b>Living Document:</b> Treat docs like code (Rough draft committed > Blank page)"]
+
+  R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> R7
+
+  style R1 fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+  style R2 fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+  style R3 fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+  style R4 fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+  style R5 fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+  style R6 fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+  style R7 fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#ffffff
 ```
 
 1. **One file = one responsibility.** Separate problems, requirements, and design into distinct files.
@@ -109,17 +118,20 @@ mindmap
 ## 4. How to Write: The 5-Step Process
 
 ```mermaid
-flowchart LR
-  S1["1. Brain Dump<br><i>(10 min freeform)</i>"] --> S2["2. Group<br><i>(Categorize themes)</i>"]
-  S2 --> S3["3. Structure<br><i>(Apply headings)</i>"]
-  S3 --> S4["4. Rewrite<br><i>(Crisp English)</i>"]
-  S4 --> S5["5. Review<br><i>(Audit checklist)</i>"]
+flowchart TD
+  S1["<b>Step 1: Brain Dump (10 mins)</b><br/>Write freely without filtering. Empty every raw idea onto the page."]
+  S2["<b>Step 2: Group by Theme</b><br/>Sort ideas into bins: Problems, Users, Pain Points, Proposed Solutions."]
+  S3["<b>Step 3: Structure with Standard Headings</b><br/>Map items into standardized document headings (FR, NFR, Stories, Scope)."]
+  S4["<b>Step 4: Rewrite for Precision</b><br/>Refine into concise, professional English sentences with measurable targets."]
+  S5["<b>Step 5: Audit & Self-Review</b><br/>Validate against the checklist: No tech names in FR? Are all numbers bounded?"]
 
-  style S1 fill:#f1f3f4,stroke:#5f6368
-  style S2 fill:#e8f0fe,stroke:#1a73e8
-  style S3 fill:#fef7e0,stroke:#f9ab00
-  style S4 fill:#e6f4ea,stroke:#137333
-  style S5 fill:#ceead6,stroke:#0d652d,stroke-width:2px
+  S1 --> S2 --> S3 --> S4 --> S5
+
+  style S1 fill:#1e293b,stroke:#94a3b8,stroke-width:2px,color:#ffffff
+  style S2 fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+  style S3 fill:#1e293b,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+  style S4 fill:#1e293b,stroke:#4ade80,stroke-width:2px,color:#ffffff
+  style S5 fill:#142918,stroke:#22c55e,stroke-width:3px,color:#ffffff
 ```
 
 1. **Brain dump (10 min):** Write down whatever is in your head without worrying about structure. Just get all thoughts out on paper.
@@ -130,20 +142,26 @@ flowchart LR
 
 ---
 
-## 5. Key Terms & Traceability
+## 5. Key Terms & Traceability Framework
 
 ```mermaid
-flowchart LR
-  Actor["👤 Actor / Persona<br><i>(Role: Employee)</i>"] --> Story["📖 User Story<br><i>(US-001: As a... I want...)</i>"]
-  Story --> FR["⚙️ Functional Req<br><i>(FR-020: System must...)</i>"]
-  FR --> AC["✅ Acceptance Criteria<br><i>(Given... When... Then...)</i>"]
-  FR --> ADR["📑 ADR<br><i>(Architectural Decision)</i>"]
+flowchart TD
+  Actor["👤 <b>Actor / Persona</b><br/>Who experiences the problem? <i>(e.g., Employee: Rafi)</i>"]
+  Story["📖 <b>User Story (US-xxx)</b><br/>What capability do they need? <i>(As a... I want... So that...)</i>"]
+  FR["⚙️ <b>Functional Requirement (FR-xxx)</b><br/>What must the system do? <i>(The user can [action] [object] [condition])</i>"]
+  AC["✅ <b>Acceptance Criteria</b><br/>How do we prove it is done? <i>(Given [context], When [action], Then [result])</i>"]
+  ADR["📑 <b>Architecture Decision Record (ADR)</b><br/>How do we engineer it and why? <i>(Context > Decision > Trade-offs)</i>"]
 
-  style Actor fill:#fce8e6,stroke:#c5221f
-  style Story fill:#e8f0fe,stroke:#1a73e8
-  style FR fill:#fef7e0,stroke:#f9ab00
-  style AC fill:#e6f4ea,stroke:#137333
-  style ADR fill:#f3e8fd,stroke:#9334e6
+  Actor -->|Needs Capability| Story
+  Story -->|Traces Directly to| FR
+  FR -->|Verified by Tests via| AC
+  FR -->|Architectural Strategy in| ADR
+
+  style Actor fill:#3b1c1c,stroke:#f87171,stroke-width:2px,color:#ffffff
+  style Story fill:#1e293b,stroke:#60a5fa,stroke-width:2px,color:#ffffff
+  style FR fill:#2d2613,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+  style AC fill:#132e1b,stroke:#4ade80,stroke-width:2px,color:#ffffff
+  style ADR fill:#291438,stroke:#c084fc,stroke-width:2px,color:#ffffff
 ```
 
 | Term | Meaning | Example |
@@ -192,13 +210,13 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  P01["01 Problem Statement<br><i>Why are we building this?</i>"]
-  P04["04 User Stories<br><i>Who wants what? (Personas & Needs)</i>"]
-  P02["02 Functional Req (FR)<br><i>What will the system do? (Derived from stories)</i>"]
-  P03["03 Non-Functional Req (NFR)<br><i>How well must it perform? (Speed, Cost, Scale)</i>"]
-  P05["05 Scope & Risks<br><i>What is in/out of scope, and what could go wrong?</i>"]
-  PADR["Architecture Decision Records (ADR)<br><i>Key technology choices & trade-offs</i>"]
-  PREADME["README.md<br><i>Written last; serves as the repository storefront</i>"]
+  P01["<b>1. Problem Statement (01)</b><br/>Define the real pain, who suffers, and why workarounds fail."]
+  P04["<b>2. User Stories (04)</b><br/>Write stories from user perspective: <i>As a... I want... So that...</i>"]
+  P02["<b>3. Functional Requirements (02)</b><br/>Derive system capabilities from stories: <i>The user can...</i>"]
+  P03["<b>4. Non-Functional Requirements (03)</b><br/>Establish measurable constraints: <i>p95 latency, cost caps, SLAs</i>"]
+  P05["<b>5. Scope, Assumptions & Risks (05)</b><br/>Set hard boundaries: <i>What is out of scope? What could fail?</i>"]
+  PADR["<b>6. Architecture Decision Records (ADRs)</b><br/>Document major technical choices and trade-offs."]
+  PREADME["<b>7. README.md</b><br/>Write last as the repository's polished storefront."]
 
   P01 ==> P04
   P04 ==> P02
@@ -207,13 +225,13 @@ flowchart TD
   P05 ==> PADR
   PADR ==> PREADME
 
-  style P01 fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px
-  style P04 fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px
-  style P02 fill:#fef7e0,stroke:#f9ab00,stroke-width:2px
-  style P03 fill:#fef7e0,stroke:#f9ab00,stroke-width:2px
-  style P05 fill:#fce8e6,stroke:#ea4335,stroke-width:2px
-  style PADR fill:#f3e8fd,stroke:#9334e6,stroke-width:2px
-  style PREADME fill:#e6f4ea,stroke:#137333,stroke-width:2px
+  style P01 fill:#1e293b,stroke:#60a5fa,stroke-width:2px,color:#ffffff
+  style P04 fill:#1e293b,stroke:#60a5fa,stroke-width:2px,color:#ffffff
+  style P02 fill:#1e293b,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+  style P03 fill:#1e293b,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+  style P05 fill:#1e293b,stroke:#f87171,stroke-width:2px,color:#ffffff
+  style PADR fill:#1e293b,stroke:#c084fc,stroke-width:2px,color:#ffffff
+  style PREADME fill:#132e1b,stroke:#4ade80,stroke-width:3px,color:#ffffff
 ```
 
 > [!NOTE]
@@ -279,44 +297,92 @@ graph LR
 ## 12. Complete Documentation Folder Structure
 
 ```mermaid
-graph TD
-  Root["📁 opspilot/"]
-  Root --> README["📄 README.md (Storefront)"]
-  Root --> Docs["📁 docs/"]
-  
-  Docs --> D00["📄 00-how-to-write-docs.md"]
-  Docs --> D01["📄 01-problem-statement.md"]
-  Docs --> D02["📄 02-functional-requirements.md"]
-  Docs --> D03["📄 03-non-functional-requirements.md"]
-  Docs --> D04["📄 04-user-stories.md"]
-  Docs --> D05["📄 05-scope-assumptions-risks.md"]
-  
-  Docs --> ADR["📁 adr/ (Architecture Decisions)"]
-  ADR --> A00["📄 0000-template.md"]
-  ADR --> A01["📄 0001-vector-storage-for-document-search.md"]
-  ADR --> A02["📄 0002-tenant-isolation-shared-tables-rls.md"]
-  ADR --> A03["📄 0003-modular-monolith-not-microservices.md"]
-  ADR --> A04["📄 0004-async-ingestion-with-queue.md"]
-  ADR --> A05["📄 0005-hybrid-retrieval-with-rerank.md"]
+flowchart TD
+  subgraph ROOT ["📁 opspilot/ (Repository Root)"]
+    direction TB
+    RMD["📄 <b>README.md</b> — Front door & project storefront"]
+    
+    subgraph D_DOCS ["📁 docs/ — Step 1: Requirements"]
+      direction TB
+      D00["📄 <b>00-how-to-write-docs.md</b> — Master documentation guide"]
+      D01["📄 <b>01-problem-statement.md</b> — Problem, pain points, metrics"]
+      D02["📄 <b>02-functional-requirements.md</b> — System capabilities"]
+      D03["📄 <b>03-non-functional-requirements.md</b> — Speed, cost, security"]
+      D04["📄 <b>04-user-stories.md</b> — User personas & acceptance criteria"]
+      D05["📄 <b>05-scope-assumptions-risks.md</b> — Boundaries & mitigations"]
+    end
 
-  Docs --> SysDes["📁 System Design/"]
-  SysDes --> SD06["📄 06-architecture.md"]
-  SysDes --> SD07["📄 07-data-model.md"]
-  SysDes --> SD08["📄 08-api-design.md"]
-  SysDes --> SD09["📄 09-key-flows.md"]
-  SysDes --> SD10["📄 10-security-and-tenancy.md"]
-  SysDes --> SD11["📄 11-deployment-and-observability.md"]
+    subgraph D_ADR ["📁 docs/adr/ — Architecture Decision Records"]
+      direction TB
+      A00["📄 <b>0000-template.md</b> — Standard ADR template"]
+      A01["📄 <b>0001-vector-storage-for-document-search.md</b> — Postgres + pgvector"]
+      A02["📄 <b>0002-tenant-isolation-shared-tables-rls.md</b> — Shared tables & RLS"]
+      A03["📄 <b>0003-modular-monolith-not-microservices.md</b> — Modular monolith"]
+      A04["📄 <b>0004-async-ingestion-with-queue.md</b> — Celery & Redis ingestion"]
+      A05["📄 <b>0005-hybrid-retrieval-with-rerank.md</b> — Dense + BM25 + Reranker"]
+    end
 
-  Docs --> CodeSet["📁 Code setup/"]
-  CodeSet --> CS12["📄 12-traceability-and-design-review.md"]
-  CodeSet --> CS13["📄 13-roadmap-and-milestones.md"]
-  CodeSet --> CS14["📄 14-backlog.md"]
-  CodeSet --> CS15["📄 15-working-agreements.md"]
-  CodeSet --> CS16["📄 16-learning-checkpoints.md"]
+    subgraph D_SYS ["📁 docs/System Design/ — Step 2: Architecture"]
+      direction TB
+      S00["📄 <b>00-how-to-do-system-design.md</b> — 10-step system design guide"]
+      S06["📄 <b>06-architecture.md</b> — C4 container model & drivers"]
+      S07["📄 <b>07-data-model.md</b> — ER diagrams & PostgreSQL DDL"]
+      S08["📄 <b>08-api-design.md</b> — REST endpoints & error models"]
+      S09["📄 <b>09-key-flows.md</b> — Sequence diagrams & failure handling"]
+      S10["📄 <b>10-security-and-tenancy.md</b> — 4-layer isolation & prompt defense"]
+      S11["📄 <b>11-deployment-and-observability.md</b> — Docker, CI/CD, Loki, Grafana"]
+    end
 
-  style Root fill:#f8f9fa,stroke:#202124,stroke-width:2px
-  style Docs fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px
-  style ADR fill:#f3e8fd,stroke:#9334e6,stroke-width:1px
-  style SysDes fill:#fef7e0,stroke:#f9ab00,stroke-width:1px
-  style CodeSet fill:#e6f4ea,stroke:#137333,stroke-width:1px
-```
+    subgraph D_CODE ["📁 docs/Code setup/ — Step 3: Planning & Setup"]
+      direction TB
+      C00["📄 <b>00-how-to-plan-a-project.md</b> — Project planning guide"]
+      C01["📄 <b>01-is-opspilot-microservices.md</b> — Microservices trade-off analysis"]
+      C12["📄 <b>12-traceability-and-design-review.md</b> — Requirements matrix"]
+      C13["📄 <b>13-roadmap-and-milestones.md</b> — Schedule & phase exits"]
+      C14["📄 <b>14-backlog.md</b> — Granular tasks & story backlog"]
+      C15["📄 <b>15-working-agreements.md</b> — Git workflow & PR standards"]
+      C16["📄 <b>16-learning-checkpoints.md</b> — Conceptual interview mastery"]
+    end
+  end
+
+  RMD --> D_DOCS
+  D_DOCS --> D_ADR
+  D_DOCS --> D_SYS
+  D_DOCS --> D_CODE
+
+  style ROOT fill:#0b1120,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+  style D_DOCS fill:#111827,stroke:#60a5fa,stroke-width:2px,color:#ffffff
+  style D_ADR fill:#111827,stroke:#c084fc,stroke-width:2px,color:#ffffff
+  style D_SYS fill:#111827,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+  style D_CODE fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+
+  style RMD fill:#1e293b,stroke:#38bdf8,color:#ffffff
+  style D00 fill:#1e293b,stroke:#60a5fa,color:#ffffff
+  style D01 fill:#1e293b,stroke:#60a5fa,color:#ffffff
+  style D02 fill:#1e293b,stroke:#60a5fa,color:#ffffff
+  style D03 fill:#1e293b,stroke:#60a5fa,color:#ffffff
+  style D04 fill:#1e293b,stroke:#60a5fa,color:#ffffff
+  style D05 fill:#1e293b,stroke:#60a5fa,color:#ffffff
+
+  style A00 fill:#1e293b,stroke:#c084fc,color:#ffffff
+  style A01 fill:#1e293b,stroke:#c084fc,color:#ffffff
+  style A02 fill:#1e293b,stroke:#c084fc,color:#ffffff
+  style A03 fill:#1e293b,stroke:#c084fc,color:#ffffff
+  style A04 fill:#1e293b,stroke:#c084fc,color:#ffffff
+  style A05 fill:#1e293b,stroke:#c084fc,color:#ffffff
+
+  style S00 fill:#1e293b,stroke:#fbbf24,color:#ffffff
+  style S06 fill:#1e293b,stroke:#fbbf24,color:#ffffff
+  style S07 fill:#1e293b,stroke:#fbbf24,color:#ffffff
+  style S08 fill:#1e293b,stroke:#fbbf24,color:#ffffff
+  style S09 fill:#1e293b,stroke:#fbbf24,color:#ffffff
+  style S10 fill:#1e293b,stroke:#fbbf24,color:#ffffff
+  style S11 fill:#1e293b,stroke:#fbbf24,color:#ffffff
+
+  style C00 fill:#1e293b,stroke:#4ade80,color:#ffffff
+  style C01 fill:#1e293b,stroke:#4ade80,color:#ffffff
+  style C12 fill:#1e293b,stroke:#4ade80,color:#ffffff
+  style C13 fill:#1e293b,stroke:#4ade80,color:#ffffff
+  style C14 fill:#1e293b,stroke:#4ade80,color:#ffffff
+  style C15 fill:#1e293b,stroke:#4ade80,color:#ffffff
+  style C16 fill:#1e293b,stroke:#4ade80,color:#ffffff
