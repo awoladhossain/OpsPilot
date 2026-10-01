@@ -37,6 +37,51 @@ System design is **not merely drawing boxes and arrows**. System design is:
 | 9 | Evaluate technology choices | Decision Matrices & ADRs |
 | 10 | Validate & review | Scenario Walkthroughs & Review Checklist |
 
+### The 10-Step System Design Lifecycle
+
+```mermaid
+flowchart TD
+    subgraph P1 ["Phase 1: Foundations & Context"]
+        S1["<b>Step 1:</b> Extract Architecture Drivers (FRs/NFRs)"]
+        S2["<b>Step 2:</b> Capacity & Latency Budget Estimation"]
+        S3["<b>Step 3:</b> System Context Definition (C4 Level 1)"]
+        S1 --> S2 --> S3
+    end
+
+    subgraph P2 ["Phase 2: Architecture & Data Modeling"]
+        S4["<b>Step 4:</b> High-Level Container Design (C4 Level 2)"]
+        S5["<b>Step 5:</b> Data Architecture & Tenant Isolation (RLS)"]
+        S6["<b>Step 6:</b> Map Core Sequence Flows (Happy + Failure Paths)"]
+        S7["<b>Step 7:</b> API Design & System Contracts (RFC 7807)"]
+        S4 --> S5 --> S6 --> S7
+    end
+
+    subgraph P3 ["Phase 3: Production Hardening & Review"]
+        S8["<b>Step 8:</b> Cross-Cutting Concerns (Security, Observability, Fallbacks)"]
+        S9["<b>Step 9:</b> Technology Selection Matrices & ADRs"]
+        S10["<b>Step 10:</b> Failure Scenarios & Design Review Checklist"]
+        S8 --> S9 --> S10
+    end
+
+    S3 --> S4
+    S7 --> S8
+
+    style P1 fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P2 fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P3 fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+
+    style S1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style S2 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style S3 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style S4 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style S5 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style S6 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style S7 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style S8 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style S9 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style S10 fill:#3b2413,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+```
+
 **Expected Timeframe:** 2–4 days for a scoped project. Avoid perfection paralysis: aim for **"good enough to start implementation confidently."**
 
 ---
@@ -116,6 +161,33 @@ Latency  = Sum of Latencies across all steps in the critical path
 | Network and serialization overhead | 100 ms |
 | **Total Pipeline Latency** | **~1.70 s** |
 
+### Latency Budget Waterfall Breakdown
+
+```mermaid
+flowchart TD
+    subgraph LATENCY_BUDGET ["Critical Path Latency Budget: p95 < 2.0s"]
+        L1["<b>1. Ingress & Auth:</b> 20 ms<br/>JWT validation, rate-limit check & request parsing"]
+        L2["<b>2. Query Vector Embedding:</b> 200 ms<br/>Embedding API call for user question"]
+        L3["<b>3. Hybrid Search:</b> 80 ms<br/>Dense vector (pgvector) + BM25 full-text keyword retrieval"]
+        L4["<b>4. Cross-Encoder Reranking:</b> 300 ms<br/>Precision re-scoring of top candidates"]
+        L5["<b>5. LLM Time to First Token:</b> 1,000 ms<br/>Model processing & generation start"]
+        L6["<b>6. Network & Serialization:</b> 100 ms<br/>SSE connection overhead & streaming transmission"]
+        
+        TOTAL["<b>Total Latency: ~1.70 seconds</b><br/>Buffer remaining: 300 ms under the 2.0s p95 SLA"]
+
+        L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> TOTAL
+    end
+
+    style LATENCY_BUDGET fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style L1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style L2 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style L3 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style L4 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style L5 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style L6 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style TOTAL fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+```
+
 *Architectural Takeaway:* If reranking takes $> 300\text{ ms}$, we either tune the candidate pool size, switch to a lighter cross-encoder model, or bypass reranking when retrieval confidence is high.
 
 **Your Action Item:** Build a capacity estimation table (storage, traffic, tokens, cost, latency budget) for your target system.
@@ -127,13 +199,38 @@ Latency  = Sum of Latencies across all steps in the critical path
 **Concept:** Treat the entire system as a single black box. Identify who interacts with it (actors/personas) and which third-party systems it depends on.
 
 ```mermaid
-flowchart LR
-  Employee[Employee / User] --> OpsPilot[OpsPilot System]
-  Admin[Company Administrator] --> OpsPilot
-  OpsPilot --> LLM[LLM & Embedding Providers]
-  OpsPilot --> Email[Transactional Email Provider]
-  Email --> EscalationContact[Escalation Contact / HR / IT]
-  OpsPilot -.->|Optional| Ticketing[Ticketing System API]
+flowchart TD
+    subgraph ACTORS ["Human Actors & Roles"]
+        EMP["<b>Employee / User</b><br/>Asks policy questions, receives sourced answers"]
+        ADM["<b>Company Administrator</b><br/>Uploads documents, manages access, views knowledge gaps"]
+        ESC["<b>Department Escalation Specialist</b><br/>Receives forwarded edge-case tickets with context"]
+    end
+
+    subgraph SYSTEM ["Core Platform Boundary"]
+        OPS["<b>OpsPilot Platform</b><br/>Multi-tenant enterprise RAG & policy assistant"]
+    end
+
+    subgraph EXTERNAL ["External Third-Party Services"]
+        LLM["<b>LLM & Embedding Providers</b><br/>Anthropic Claude / OpenAI / Local Ollama"]
+        MAIL["<b>Transactional Email & Notification</b><br/>Email SMTP / Webhook notifications"]
+    end
+
+    EMP -->|"Asks questions (HTTPS / SSE)"| OPS
+    ADM -->|"Manages documents & users"| OPS
+    OPS -->|"Escalates tickets"| ESC
+    OPS -->|"Embedding & inference requests"| LLM
+    OPS -->|"Sends escalation alerts"| MAIL
+
+    style ACTORS fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style SYSTEM fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style EXTERNAL fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+
+    style EMP fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ADM fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style ESC fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style OPS fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style LLM fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style MAIL fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
 ```
 
 **Why it matters:** Establishes firm boundaries. Integrations not present in the Level 1 diagram (e.g., Slack/Teams bots) are explicitly out of scope for v1.
@@ -175,38 +272,51 @@ flowchart LR
 - **Service Extraction Trigger:** In Phase 7, if embedding/reranking models require dedicated GPU hardware, extract them into a lightweight model server.
 
 ```mermaid
-flowchart TB
-  subgraph Client_Tier [Client Tier]
-    WebUI["Next.js Web Frontend (Streaming UI)"]
-  end
+flowchart TD
+    subgraph CLIENT_TIER ["1. Client Layer"]
+        WEB["<b>Next.js Web Frontend</b><br/>• Real-time SSE streaming chat UI<br/>• Citation viewer & document reader<br/>• Admin governance & gap dashboard"]
+    end
 
-  subgraph Application_Tier [Application Tier]
-    API["FastAPI Modular Monolith (Core API)"]
-    Worker["Celery Worker Process (Ingestion & Tasks)"]
-  end
+    subgraph APP_TIER ["2. Application Backend Layer"]
+        API["<b>FastAPI Modular Monolith</b><br/>• Auth, Tenancy (RLS) & Rate Limiter<br/>• Hybrid RAG & Re-ranking Engine<br/>• LangGraph Agent & HITL Approvals"]
+        WORKER["<b>Celery Worker Process</b><br/>• Document parsing (PDF, DOCX)<br/>• Text chunking & batch vectorization<br/>• Resilient background job execution"]
+        REDIS[("<b>Redis Broker & Cache</b><br/>• Job queues (Celery)<br/>• Semantic cache & rate limit state")]
+    end
 
-  subgraph Data_Tier [Data Tier]
-    PG[("PostgreSQL + pgvector")]
-    Redis[("Redis (Queue & Cache)")]
-    S3[("MinIO / S3 (Object Storage)")]
-  end
+    subgraph DATA_TIER ["3. Persistence & Storage Layer"]
+        PG[("<b>PostgreSQL + pgvector</b><br/>• App data, users & chat sessions<br/>• Document chunks with HNSW vector index<br/>• Row-Level Security (RLS) enforcement")]
+        S3[("<b>MinIO / S3 Object Storage</b><br/>• Raw original uploaded PDF/DOCX files")]
+    end
 
-  subgraph External_Services [External Services]
-    LLMProvider["LLM / Embedding Provider"]
-    EmailProvider["Email Gateway"]
-  end
+    subgraph EXT_TIER ["4. External Services"]
+        LLM_EXT["<b>LLM & Embedding APIs</b><br/>Claude, OpenAI, Local Ollama"]
+        MAIL_EXT["<b>Email Gateway</b><br/>Escalation delivery"]
+    end
 
-  WebUI -->|HTTP / SSE| API
-  API -->|Read / Write| PG
-  API -->|Enqueue Jobs| Redis
-  API -->|Store Raw Files| S3
-  API -->|Stream Inference| LLMProvider
+    WEB -->|"HTTPS / SSE"| API
+    API -->|"Enqueues ingestion job"| REDIS
+    REDIS -->|"Consumes tasks"| WORKER
+    API -->|"Relational & vector queries"| PG
+    API -->|"Streams inference"| LLM_EXT
+    API -->|"Stores raw files"| S3
+    WORKER -->|"Reads raw files"| S3
+    WORKER -->|"Batch embeddings"| LLM_EXT
+    WORKER -->|"Writes chunks & status"| PG
+    WORKER -->|"Sends alerts"| MAIL_EXT
 
-  Worker -->|Consume Jobs| Redis
-  Worker -->|Read Raw Files| S3
-  Worker -->|Batch Embeddings| LLMProvider
-  Worker -->|Write Chunks & Status| PG
-  Worker -->|Send Alerts| EmailProvider
+    style CLIENT_TIER fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style APP_TIER fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style DATA_TIER fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style EXT_TIER fill:#111827,stroke:#64748b,stroke-width:1px,color:#ffffff
+
+    style WEB fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style API fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style WORKER fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style REDIS fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style PG fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style S3 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style LLM_EXT fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style MAIL_EXT fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
 ```
 
 **Your Action Item:** Draw your C4 Container diagram. For each box, define its responsibility, the data it owns, and the requirement driving its existence.
@@ -226,6 +336,38 @@ flowchart TB
 | **Shared Tables with `tenant_id` + RLS** | High (when enforced cryptographically & at DB level) | Minimal (single database, unified migrations, fast backups) | High-tenant SaaS, agile teams (OpsPilot choice) |
 
 ### OpsPilot 4-Layer Defense-in-Depth for Tenant Isolation:
+
+```mermaid
+flowchart TD
+    subgraph L1 ["Layer 1: JWT Cryptographic Claims"]
+        T1["<b>Authenticated Token</b><br/>Claims contain immutable tenant_id & role<br/>Client cannot override tenant via body or params"]
+    end
+
+    subgraph L2 ["Layer 2: Application Context Injection"]
+        T2["<b>Repository & Query Context</b><br/>App middleware automatically binds tenant_id to query filters"]
+    end
+
+    subgraph L3 ["Layer 3: PostgreSQL Row-Level Security (RLS)"]
+        T3["<b>Database Session & Engine RLS</b><br/>SET LOCAL app.tenant_id = :id<br/>Postgres engine physically denies cross-tenant reads"]
+    end
+
+    subgraph L4 ["Layer 4: Automated CI Isolation Tests"]
+        T4["<b>Automated Regression Assertions</b><br/>CI creates dual tenants and asserts zero cross-tenant leakage"]
+    end
+
+    T1 --> T2 --> T3 --> T4
+
+    style L1 fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style L2 fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style L3 fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style L4 fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+
+    style T1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style T2 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style T3 fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style T4 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+```
+
 1. **Token Layer:** JWT claims contain the immutable `tenant_id` and verified `role`. Clients cannot specify or override the tenant ID in request bodies.
 2. **Application Layer:** Request context automatically injects `tenant_id` into repository queries.
 3. **Database Layer (Row-Level Security):** Transactions execute `SELECT set_config('app.tenant_id', :tenant_id, true)`. PostgreSQL RLS policies enforce that no query can see rows with a different `tenant_id`. Tables enable `FORCE ROW LEVEL SECURITY`.
@@ -255,6 +397,52 @@ flowchart TB
    - What happens if an external dependency **times out or returns 500/429**?
    - What happens if a client sends a **duplicate request**? *(Enforce Idempotency via hashes or headers)*
    - What happens if a **partial failure** occurs? *(e.g., file saved in S3, but queue enqueue fails)*
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Employee / Admin
+    participant API as FastAPI Monolith
+    participant Redis as Redis Queue
+    participant Worker as Celery Worker
+    participant DB as Postgres (pgvector)
+    participant Model as LLM / Embed Provider
+
+    Note over Client, DB: Flow 1: Document Upload & Async Ingestion
+    Client->>API: POST /api/v1/documents (PDF)
+    activate API
+    API->>DB: Insert document (status: 'uploaded')
+    API->>Redis: Enqueue ingestion task
+    API-->>Client: 202 Accepted (job_id)
+    deactivate API
+
+    Redis->>Worker: Dispatch task
+    activate Worker
+    Worker->>DB: Update status: 'processing'
+    Worker->>Worker: Parse text & chunk (~500 tokens)
+    Worker->>Model: Batch generate embeddings
+    Model-->>Worker: Vector embeddings
+    Worker->>DB: Insert chunks & pgvector index (Atomic)
+    Worker->>DB: Update status: 'ready'
+    deactivate Worker
+
+    Note over Client, Model: Flow 2: Streaming Grounded RAG
+    Client->>API: POST /api/v1/chat (SSE Stream)
+    activate API
+    API->>Model: Embed query
+    Model-->>API: Query vector
+    API->>DB: Hybrid search (pgvector + BM25) with RLS
+    DB-->>API: Top candidate chunks
+    API->>API: Cross-encoder rerank & threshold check
+    alt Confident Match
+        API->>Model: Stream prompt with chunk citations
+        Model-->>API: Token chunks
+        API-->>Client: Real-time SSE stream + source citations
+    else Out-of-Scope / Missing Info
+        API-->>Client: Honest "I don't know" + Escalation button
+    end
+    deactivate API
+```
 
 ### Flow 1: Document Upload & Asynchronous Ingestion:
 - Client sends file $\rightarrow$ API saves to object store $\rightarrow$ Inserts document row (`status='uploaded'`) $\rightarrow$ Pushes job to Redis queue $\rightarrow$ Returns `202 Accepted`.
