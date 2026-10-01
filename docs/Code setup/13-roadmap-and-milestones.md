@@ -3,13 +3,17 @@
 **Status:** Approved v1 (reference) | **Last updated:** 2026-10-01
 **Inputs:** [02 FR](../02-functional-requirements.md), [06 Architecture](../System%20Design/06-architecture.md), [12 Traceability](12-traceability-and-design-review.md)
 
-## 1. Vision and final demo
+---
+
+## 1. Vision and Final Demo
 
 **Vision:** A company uploads its documents; employees ask questions and get cited answers, and can escalate to a person when the answer is missing.
 
 **Final demo:** live URL with HTTPS, login as admin and employee, upload a policy PDF, ask a question and see citations, see "I don't know" for an out-of-scope question, escalate by email, confirm an agent action, show Grafana dashboards and an evaluation report.
 
-## 2. Planning assumptions
+---
+
+## 2. Planning Assumptions
 
 | Assumption | Value | If wrong |
 |---|---|---|
@@ -20,7 +24,52 @@
 | Tools | Python backend (FastAPI), Postgres, Redis, MinIO, Next.js UI | Changes need an ADR |
 | Office work | Can reduce capacity at busy times | Use the buffer; never skip the weekly review |
 
-## 3. Schedule
+---
+
+## 3. Phased Delivery Roadmap & Schedule
+
+```mermaid
+flowchart TD
+    subgraph PHASE_FOUNDATION ["Foundation & Core Architecture (Weeks 1 - 5)"]
+        P0["<b>Phase 0: Setup & Infrastructure</b><br/>11h (Weeks 1-2) • Docker Compose, CI skeleton, /health/ready"]
+        P1["<b>Phase 1: Multi-Tenant Foundation</b><br/>31h (Weeks 2-5) • Org registration, JWT, RLS spike, SSE streaming"]
+        P0 --> P1
+    end
+
+    subgraph PHASE_RAG ["Grounded Knowledge & Retrieval (Weeks 5 - 14)"]
+        P2["<b>Phase 2: Basic RAG Engine</b><br/>35.5h (Weeks 5-10) • Async PDF ingestion, pgvector HNSW, citations, phone UI"]
+        P3["<b>Phase 3: Retrieval Quality & Evaluation</b><br/>34h (Weeks 10-14) • 50-q eval set, hybrid search, rerank, Ragas CI gate"]
+        P1 --> P2 --> P3
+    end
+
+    subgraph PHASE_FEATURES ["Agents & Hardening (Weeks 14 - 22)"]
+        P4["<b>Phase 4: Agents & Human Escalation</b><br/>31h (Weeks 14-18) • HITL propose-confirm, email tickets, MCP tool"]
+        P5["<b>Phase 5: Production Hardening</b><br/>33h (Weeks 18-22) • Redis rate limits, caching, fallback chain, admin dashboards"]
+        P3 --> P4
+        P3 --> P5
+        P4 --> P5
+    end
+
+    subgraph PHASE_PRODUCTION ["Operations & Advanced Depth (Weeks 22 - 30)"]
+        P6["<b>Phase 6: Observability & Production Deploy</b><br/>32h (Weeks 22-25) • Live HTTPS, Grafana stack, alert drills, auto-deploy"]
+        P7["<b>Phase 7: Advanced Depth (Stretch)</b><br/>37h (Weeks 25-30) • Model server extraction, routing, fine-tune analysis"]
+        P5 --> P6 --> P7
+    end
+
+    style PHASE_FOUNDATION fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style PHASE_RAG fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style PHASE_FEATURES fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style PHASE_PRODUCTION fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+
+    style P0 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P2 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P3 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P4 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style P5 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style P6 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style P7 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+```
 
 | Phase | Name | Base hours | Planned weeks | Start (week starts) | Demo |
 |---|---|---|---|---|---|
@@ -36,7 +85,9 @@
 
 Base total 244.5 h, with 20% contingency about 293 h, about 29 weeks at 10 h/week. **Phases 0-6 (the complete product) finish around week 25 (late March 2027).** Phase 7 is the advanced stretch and can continue into April. Ramadan and Eid (roughly February to March 2027) and office deadlines may slow you down, which is why the buffer exists.
 
-## 4. Phases in detail
+---
+
+## 4. Phases in Detail
 
 ### Phase 0: Setup (11 h)
 - **Goal:** Working development environment, repository, and CI skeleton.
@@ -87,41 +138,99 @@ Base total 244.5 h, with 20% contingency about 293 h, about 29 weeks at 10 h/wee
 - **Exit criteria:** [ ] Model server extracted behind the same interface [ ] Routing evaluated on cost and quality [ ] Small fine-tune compared against baseline (check VRAM first) [ ] Bengali experiment documented [ ] Final load test [ ] Write-up, README, demo video
 - **Learning outcomes:** Service extraction, model serving, routing, parameter-efficient fine-tuning, multilingual retrieval, technical writing.
 
-## 5. Dependencies between phases
+---
+
+## 5. Phase Dependency Graph
 
 ```mermaid
-flowchart LR
-  P0[0 Setup] --> P1[1 Foundation]
-  P1 --> P2[2 Basic RAG]
-  P2 --> P3[3 Evaluation]
-  P3 --> P4[4 Agents]
-  P3 --> P5[5 Hardening]
-  P4 --> P5
-  P5 --> P6[6 Operate]
-  P6 --> P7[7 Advanced]
+flowchart TD
+    P0["<b>Phase 0: Setup</b><br/>Docker, CI, base repo"]
+    P1["<b>Phase 1: Foundation</b><br/>Tenancy, auth, LLM stream"]
+    P2["<b>Phase 2: Basic RAG</b><br/>Ingestion, pgvector, UI"]
+    P3["<b>Phase 3: Eval & Rerank</b><br/>Quality benchmarking"]
+    P4["<b>Phase 4: Agents</b><br/>HITL & Escalation"]
+    P5["<b>Phase 5: Hardening</b><br/>Rate limits, cache, admin"]
+    P6["<b>Phase 6: Observability & CD</b><br/>Production live demo"]
+    P7["<b>Phase 7: Advanced</b><br/>Stretch models & routing"]
+
+    P0 --> P1
+    P1 --> P2
+    P2 --> P3
+    P3 --> P4
+    P3 --> P5
+    P4 --> P5
+    P5 --> P6
+    P6 --> P7
+
+    style P0 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P2 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P3 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P4 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style P5 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style P6 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style P7 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
 ```
 
 Observability basics (structured logs, request IDs) start in Phase 1, so Phase 6 builds on existing signals.
 
-## 6. If you fall behind: what to cut (in this order)
+---
 
-1. Phase 7 items (all stretch)
-2. Semantic cache experiment (keep exact cache)
-3. Admin UI polish (keep APIs)
-4. URL ingestion (FR-011)
-5. Structured data tool (FR-042)
-6. Tracing and Langfuse (keep metrics, logs, alerts)
-7. Bengali support (FR-026)
+## 6. Scope Management: Critical Path vs. De-scoping Hierarchy
+
+```mermaid
+flowchart TD
+    subgraph NEVER_CUT ["Non-Negotiable Core (Never Compromise)"]
+        NC1["<b>Multi-Tenant Isolation Tests</b> (NFR-010, RLS)"]
+        NC2["<b>Retrieval Evaluation Suite</b> (NFR-007, Golden set)"]
+        NC3["<b>'I Don't Know' Fallback Behavior</b> (Hallucination defense)"]
+        NC4["<b>Propose-Only Agent Tooling</b> (Human-in-the-loop safety)"]
+        NC5["<b>Automated CI Gates</b> (Lint, Type check, Tests)"]
+    end
+
+    subgraph DE_SCOPE ["De-scoping Hierarchy (Cut in this Order if Behind)"]
+        DS1["<b>1. Phase 7 Items:</b> Model server, Fine-tune, Multilingual"]
+        DS2["<b>2. Semantic Caching:</b> Keep exact Redis cache only"]
+        DS3["<b>3. Admin UI Polish:</b> Keep pure REST APIs"]
+        DS4["<b>4. URL Ingestion:</b> Focus exclusively on PDF upload"]
+        DS5["<b>5. Structured Data Tool:</b> Drop non-document querying"]
+        DS6["<b>6. Langfuse Tracing:</b> Keep Prometheus metrics & Loki logs"]
+        DS7["<b>7. Bengali Keyword Search:</b> Rely on multilingual embeddings"]
+        
+        DS1 --> DS2 --> DS3 --> DS4 --> DS5 --> DS6 --> DS7
+    end
+
+    style NEVER_CUT fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style DE_SCOPE fill:#111827,stroke:#f87171,stroke-width:1px,color:#ffffff
+
+    style NC1 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style NC2 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style NC3 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style NC4 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style NC5 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+
+    style DS1 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style DS2 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style DS3 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style DS4 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style DS5 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style DS6 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style DS7 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+```
 
 **Never cut:** tenant isolation tests, evaluation set, "I don't know" behavior, propose-only agent, CI.
 
-## 7. Re-plan triggers
+---
+
+## 7. Re-Plan Triggers
 
 - Phase takes more than 1.5x its estimate: stop, find out why, update remaining estimates.
 - A spike shows a design assumption is wrong: write a new ADR, update affected docs.
 - Two weeks without progress: reduce scope of the current phase, do not extend it.
 
-## 8. Phase done checklist (every phase)
+---
+
+## 8. Phase Done Checklist (Every Phase)
 
 - [ ] Demo works and is recorded (2-3 minutes)
 - [ ] Exit criteria all checked

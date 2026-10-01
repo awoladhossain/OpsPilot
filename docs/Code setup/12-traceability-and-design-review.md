@@ -4,7 +4,65 @@
 
 Purpose: prove that every requirement is covered by the design and assigned to a phase, and record the review of the design itself.
 
-## 1. Functional requirements
+---
+
+## 1. Functional Requirements Traceability
+
+```mermaid
+flowchart TD
+    subgraph REQS ["Functional Requirements (User Demands)"]
+        FR_AUTH["<b>Identity & Tenancy (FR-001..004)</b><br/>Org registration, RBAC, JWT auth, RLS isolation"]
+        FR_DOCS["<b>Knowledge Ingestion (FR-010..014)</b><br/>PDF upload, async parsing, chunking, role filters"]
+        FR_RAG["<b>Streaming Grounded RAG (FR-020..024)</b><br/>SSE token streaming, verbatim citations, fallback threshold"]
+        FR_ESC["<b>Escalation & Actions (FR-030..042)</b><br/>1-click human tickets, HITL action proposals, MCP tool"]
+        FR_OPS["<b>Admin & Observability (FR-050..052)</b><br/>Usage metrics, token accounting, knowledge gaps"]
+    end
+
+    subgraph MODULES ["Architectural Modules (In-Process Monolith)"]
+        M_ID["<b>identity & core</b><br/>tenants, users, refresh_tokens"]
+        M_DOC["<b>documents & ingestion</b><br/>documents, document_chunks, Celery worker"]
+        M_CHAT["<b>chat, retrieval & llm</b><br/>conversations, messages, citations, pgvector"]
+        M_ESC["<b>escalation & agent</b><br/>escalations, pending_actions, SMTP"]
+        M_ADM["<b>admin & usage</b><br/>usage_events, feedback, telemetry"]
+    end
+
+    subgraph PHASES ["Implementation Milestones"]
+        P1["<b>Phase 1: Foundation</b><br/>Walking skeleton, Auth, SSE stream"]
+        P2["<b>Phase 2: Basic RAG</b><br/>Ingestion, pgvector, UI"]
+        P3["<b>Phase 3: Eval & Rerank</b><br/>Evaluation set, Cross-encoder, Tuning"]
+        P4["<b>Phase 4: Agents & Escalate</b><br/>HITL confirm, Escalation tickets, MCP"]
+        P5["<b>Phase 5: Hardening</b><br/>Rate limits, Cache, Admin dashboards"]
+    end
+
+    FR_AUTH --> M_ID --> P1
+    FR_DOCS --> M_DOC --> P2
+    FR_RAG --> M_CHAT --> P2
+    M_CHAT -.->|"Quality & Evaluation Gate"| P3
+    FR_ESC --> M_ESC --> P4
+    FR_OPS --> M_ADM --> P5
+
+    style REQS fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style MODULES fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style PHASES fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+
+    style FR_AUTH fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style FR_DOCS fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style FR_RAG fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style FR_ESC fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style FR_OPS fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+
+    style M_ID fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style M_DOC fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style M_CHAT fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style M_ESC fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style M_ADM fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+
+    style P1 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P2 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P3 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style P4 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style P5 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+```
 
 | FR | Module(s) | Tables | Endpoint(s) | Phase |
 |---|---|---|---|---|
@@ -34,7 +92,57 @@ Purpose: prove that every requirement is covered by the design and assigned to a
 | FR-051 | admin, chat | messages | GET /admin/knowledge-gaps | 5 |
 | FR-052 | admin, chat | feedback | GET /admin/feedback | 5 |
 
-## 2. Non-functional requirements
+---
+
+## 2. Non-Functional Requirements Verification
+
+```mermaid
+flowchart TD
+    subgraph PILLARS ["Quality & Architectural Drivers"]
+        NFR_PERF["<b>Performance & Responsiveness</b><br/>NFR-001..003: Streaming TTFT &lt; 2s, Async ingestion"]
+        NFR_QUAL["<b>RAG Quality & Precision</b><br/>NFR-004..007: Faithfulness, Hit rate &gt; 85%, Zero hallucinations"]
+        NFR_SEC["<b>Tenancy & Data Security</b><br/>NFR-010..014: 4-layer RLS, Prompt injection defense, PII masking"]
+        NFR_REL["<b>Reliability & Observability</b><br/>NFR-016..026: Provider fallback, OpenTelemetry, Health checks"]
+    end
+
+    subgraph CONTROLS ["Architectural Countermeasures"]
+        C_STREAM["SSE Progressive Chunks + In-Memory Rerank"]
+        C_EVAL["Automated Evaluation Harness + Ragas CI Gate"]
+        C_RLS["Postgres RLS Session Variables + Scope Assertions"]
+        C_RESIL["Tenacity Retries + Redis Rate Limiter + Circuit Breaker"]
+    end
+
+    subgraph PROBES ["Automated Verification Gates"]
+        V_LOAD["k6 Load Tests & Latency Histograms"]
+        V_CI["GitHub Actions CI Golden Dataset Test"]
+        V_ISOL["Multi-Tenant Isolation Integration Tests"]
+        V_MON["Prometheus Alerts + Synthetic Error Drills"]
+    end
+
+    NFR_PERF --> C_STREAM --> V_LOAD
+    NFR_QUAL --> C_EVAL --> V_CI
+    NFR_SEC --> C_RLS --> V_ISOL
+    NFR_REL --> C_RESIL --> V_MON
+
+    style PILLARS fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style CONTROLS fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style PROBES fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+
+    style NFR_PERF fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style NFR_QUAL fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style NFR_SEC fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style NFR_REL fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+
+    style C_STREAM fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style C_EVAL fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style C_RLS fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style C_RESIL fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+
+    style V_LOAD fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style V_CI fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style V_ISOL fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style V_MON fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+```
 
 | NFR | Design response | Where | Verified by | Phase |
 |---|---|---|---|---|
@@ -55,7 +163,9 @@ Purpose: prove that every requirement is covered by the design and assigned to a
 | NFR-022..026 | CI pipeline, compose, deploy, coverage | 11 | CI | 0, 6 |
 | NFR-027, 028 | Thin responsive UI, error format | 08 | Manual test | 2, 5 |
 
-## 3. Story walkthrough (design review step 1)
+---
+
+## 3. Story Walkthrough (Design Review Step 1)
 
 | Story | Path through design | Gap? |
 |---|---|---|
@@ -72,22 +182,69 @@ Purpose: prove that every requirement is covered by the design and assigned to a
 | US-031 Usage | usage_events | None |
 | US-040 Setup | identity | Login lookup before tenant known (see 07) |
 
-**Gaps found and fixed in design:** (1) PATCH of allowed roles must update chunk roles in the same transaction. (2) Add `answered boolean` (or reason code) to `messages` so knowledge gaps are queryable. (3) Login lookup exception for RLS.
+**Gaps found and fixed in design:**
+1. PATCH of allowed roles must update chunk roles in the same transaction.
+2. Add `answered boolean` (or reason code) to `messages` so knowledge gaps are queryable.
+3. Login lookup exception for RLS.
 
-## 4. Failure scenarios ("what if X dies")
+---
 
-| Scenario | Result |
+## 4. Failure Scenarios and Resilience Matrix
+
+```mermaid
+flowchart TD
+    subgraph FAILURES ["Fault Injections & Disruption Scenarios"]
+        FL_LLM["<b>LLM Provider Outage / Rate Limit</b><br/>Primary model API returns 429/500/timeout"]
+        FL_WRK["<b>Celery Worker Node Crash</b><br/>Process killed mid-document embedding"]
+        FL_RDS["<b>Redis Broker Restart / Eviction</b><br/>In-flight queue state lost or rate limits reset"]
+        FL_DB["<b>DB Connection Pool Exhaustion</b><br/>Sudden burst saturates available pool connections"]
+        FL_INJ["<b>Prompt Injection Payload in PDF</b><br/>Adversarial instructions embedded in uploaded doc"]
+    end
+
+    subgraph RESILIENCE ["Architectural Countermeasures & Recovery"]
+        R_LLM["<b>Automated Fallback Chain</b><br/>Retry with backoff $\rightarrow$ switch to backup model $\rightarrow$ graceful error event"]
+        R_WRK["<b>Idempotent Chunk Processing</b><br/>Message redelivered via Redis visibility timeout; chunk upsert prevents duplicates"]
+        R_RDS["<b>Periodic Reconciliation Sweep</b><br/>Scheduled background task re-enqueues orphaned 'uploaded' documents"]
+        R_DB["<b>Fast-Fail & Circuit Breaker</b><br/>Queue connection timeouts return HTTP 503 Service Unavailable + Prometheus alert"]
+        R_INJ["<b>Strict Data Demarcation</b><br/>Parser strips executable scripts; RAG prompt encloses chunks in data tags"]
+    end
+
+    FL_LLM --> R_LLM
+    FL_WRK --> R_WRK
+    FL_RDS --> R_RDS
+    FL_DB --> R_DB
+    FL_INJ --> R_INJ
+
+    style FAILURES fill:#111827,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style RESILIENCE fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+
+    style FL_LLM fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style FL_WRK fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style FL_RDS fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style FL_DB fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style FL_INJ fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+
+    style R_LLM fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style R_WRK fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style R_RDS fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style R_DB fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style R_INJ fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+```
+
+| Scenario | Result & System Behavior |
 |---|---|
 | LLM provider down | Retry once, fallback model, then clear error; chat for cached or "I don't know" paths unaffected |
-| Worker crashes mid-ingestion | Job re-delivered, idempotent |
+| Worker crashes mid-ingestion | Job re-delivered, idempotent; document chunk cleanup on retry |
 | Redis restarts | Queue jobs may be lost; periodic job re-enqueues stale `uploaded` documents; rate limits reset |
 | Database connection pool full | Request timeout, `503`, alert; pool size and timeouts configured |
-| One tenant floods requests | Per-tenant rate limit and cap |
-| Malicious PDF with instructions | Treated as data; attack test set |
-| Embedding model changed | Re-index job using `embedding_model` |
-| Object storage unavailable | Upload fails fast with error; existing answers unaffected |
+| One tenant floods requests | Per-tenant rate limit and cap in Redis protects shared infrastructure |
+| Malicious PDF with instructions | Treated as data inside XML tags; attack test set run in CI |
+| Embedding model changed | Re-index job using `embedding_model` version column |
+| Object storage unavailable | Upload fails fast with error; existing retrieval answers unaffected |
 
-## 5. Open decisions (resolved at the named phase)
+---
+
+## 5. Open Decisions (Resolved at Named Phase)
 
 | Decision | Phase |
 |---|---|
@@ -97,7 +254,9 @@ Purpose: prove that every requirement is covered by the design and assigned to a
 | Hosting provider and size | 6 |
 | Bengali keyword search approach | 7 |
 
-## 6. Review checklist result
+---
+
+## 6. Review Checklist Result
 
 - [x] Every Must FR maps to a module, table, endpoint, and phase
 - [x] Every architecture driver has a design response
