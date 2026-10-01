@@ -2,6 +2,8 @@
 
 **Status:** Approved v2 (reference) | **Last updated:** 2026-10-01
 
+---
+
 ## 1. Principles
 
 1. Every tenant-owned table has `tenant_id uuid NOT NULL`.
@@ -11,25 +13,181 @@
 5. Isolation enforced by Postgres row-level security (RLS), see [10](10-security-and-tenancy.md).
 6. Migrations with Alembic; backward compatible (add first, remove later).
 
-## 2. Entity relationships
+### Multi-Tenant Data Isolation & RLS Security Boundary
+
+```mermaid
+flowchart TD
+    subgraph TENANT_ROOT ["Tenant Root Entity"]
+        TENANT["<b>tenants (id: UUID)</b><br/>Root of data isolation & monthly token quota"]
+    end
+
+    subgraph ISOLATED_TABLES ["Tenant-Isolated Tables (Every row has tenant_id)"]
+        T_USERS["<b>users & invitations</b><br/>email unique per tenant"]
+        T_DOCS["<b>documents & categories</b><br/>soft-deleted with deleted_at"]
+        T_CHUNKS["<b>document_chunks</b><br/>HNSW vector embeddings & tsvector"]
+        T_CHAT["<b>conversations & messages</b><br/>session turns, tokens & citations"]
+        T_ACT["<b>pending_actions & escalations</b><br/>HITL approval state machine"]
+        T_USE["<b>usage_events & audit_logs</b><br/>financial token tracking"]
+    end
+
+    subgraph RLS_GATE ["PostgreSQL Row-Level Security Engine (Fail-Closed)"]
+        SESSION["<b>SET LOCAL app.tenant_id = :current_tenant</b>"]
+        CHECK{"<b>tenant_id = NULLIF(current_setting('app.tenant_id'), '')::uuid</b>"}
+        
+        SESSION --> CHECK
+        CHECK -- "Match" --> OK["<b>Rows Returned (Isolated to Tenant)</b>"]
+        CHECK -- "No match or NULL" --> FAIL["<b>Zero Rows Returned (Fails Closed)</b>"]
+    end
+
+    TENANT --> T_USERS & T_DOCS & T_CHAT & T_ACT & T_USE
+    T_DOCS --> T_CHUNKS
+    ISOLATED_TABLES -.->|"Guarded by RLS policy"| RLS_GATE
+
+    style TENANT_ROOT fill:#111827,stroke:#c084fc,stroke-width:2px,color:#ffffff
+    style ISOLATED_TABLES fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style RLS_GATE fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+
+    style TENANT fill:#271b3d,stroke:#c084fc,stroke-width:2px,color:#ffffff
+    style T_USERS fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style T_DOCS fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style T_CHUNKS fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style T_CHAT fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style T_ACT fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style T_USE fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style SESSION fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style CHECK fill:#3b2413,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+    style OK fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style FAIL fill:#3f1418,stroke:#ef4444,stroke-width:2px,color:#ffffff
+```
+
+---
+
+## 2. Entity Relationships
 
 ```mermaid
 erDiagram
-  TENANT ||--o{ USER : has
-  TENANT ||--o{ DOCUMENT : owns
-  TENANT ||--o{ ESCALATION_CONTACT : configures
-  TENANT ||--o{ USAGE_EVENT : records
-  USER ||--o{ CONVERSATION : starts
-  CONVERSATION ||--o{ MESSAGE : contains
-  MESSAGE ||--o{ CITATION : references
-  MESSAGE ||--o| FEEDBACK : rated_by
-  DOCUMENT ||--o{ CHUNK : split_into
-  CHUNK ||--o{ CITATION : cited_by
-  CONVERSATION ||--o{ ESCALATION : context_of
-  CONVERSATION ||--o{ PENDING_ACTION : proposes
+    TENANTS ||--o{ USERS : "has members"
+    TENANTS ||--o{ DOCUMENTS : "owns"
+    TENANTS ||--o{ CONVERSATIONS : "owns"
+    TENANTS ||--o{ ESCALATION_CONTACTS : "configures"
+    TENANTS ||--o{ USAGE_EVENTS : "records"
+    
+    DOCUMENTS ||--o{ DOCUMENT_CHUNKS : "split into"
+    USERS ||--o{ CONVERSATIONS : "starts"
+    CONVERSATIONS ||--o{ MESSAGES : "contains"
+    CONVERSATIONS ||--o{ ESCALATIONS : "context for"
+    CONVERSATIONS ||--o{ PENDING_ACTIONS : "proposes"
+    
+    MESSAGES ||--o{ CITATIONS : "references"
+    MESSAGES ||--o| FEEDBACK : "rated by"
+    DOCUMENT_CHUNKS ||--o{ CITATIONS : "cited by"
+
+    TENANTS {
+        uuid id PK
+        string name
+        string slug
+        int monthly_token_cap
+        string status
+        timestamp created_at
+    }
+
+    USERS {
+        uuid id PK
+        uuid tenant_id FK
+        string email
+        string password_hash
+        string role
+        string status
+    }
+
+    DOCUMENTS {
+        uuid id PK
+        uuid tenant_id FK
+        string title
+        uuid category_id FK
+        string storage_key
+        string content_hash
+        string status
+        string[] allowed_roles
+        timestamp deleted_at
+    }
+
+    DOCUMENT_CHUNKS {
+        uuid id PK
+        uuid tenant_id FK
+        uuid document_id FK
+        int ordinal
+        text content
+        int page
+        string section
+        vector embedding
+        tsvector tsv
+        string[] allowed_roles
+    }
+
+    CONVERSATIONS {
+        uuid id PK
+        uuid tenant_id FK
+        uuid user_id FK
+        string title
+        timestamp created_at
+    }
+
+    MESSAGES {
+        uuid id PK
+        uuid tenant_id FK
+        uuid conversation_id FK
+        string role
+        text content
+        boolean answered
+        int input_tokens
+        int output_tokens
+        int latency_ms
+    }
+
+    CITATIONS {
+        uuid id PK
+        uuid tenant_id FK
+        uuid message_id FK
+        uuid chunk_id FK
+        int page
+        string section
+        float score
+    }
+
+    PENDING_ACTIONS {
+        uuid id PK
+        uuid tenant_id FK
+        uuid conversation_id FK
+        string type
+        jsonb payload
+        string status
+        timestamp expires_at
+    }
+
+    ESCALATIONS {
+        uuid id PK
+        uuid tenant_id FK
+        uuid conversation_id FK
+        uuid contact_id FK
+        string status
+        timestamp created_at
+    }
+
+    USAGE_EVENTS {
+        uuid id PK
+        uuid tenant_id FK
+        uuid user_id FK
+        string model
+        int input_tokens
+        int output_tokens
+        decimal cost_usd
+    }
 ```
 
-## 3. Tables by owning module
+---
+
+## 3. Tables by Owning Module
 
 | Module | Table | Key columns | Notes |
 |---|---|---|---|
@@ -51,7 +209,9 @@ erDiagram
 | usage | `usage_events` | id, tenant_id, user_id, kind, model, input_tokens, output_tokens, cost_usd | Source for dashboard and caps |
 | core | `audit_logs` | id, tenant_id, actor_id, action, target, created_at | Who did what |
 
-## 4. Key DDL (reference)
+---
+
+## 4. Key DDL (Reference)
 
 ```sql
 CREATE TABLE documents (
@@ -104,7 +264,9 @@ If `app.tenant_id` is not set, the policy compares with NULL and returns **no ro
 
 Login lookup (find a user by email before the tenant is known) needs a controlled exception: a `SECURITY DEFINER` function or a separate narrowly scoped role. Design this in Phase 1 and test it.
 
-## 5. Query patterns and indexes
+---
+
+## 5. Query Patterns and Indexes
 
 | Query | Index |
 |---|---|
@@ -116,7 +278,9 @@ Login lookup (find a user by email before the tenant is known) needs a controlle
 
 > Filtered vector search may return fewer relevant rows when the filter removes many candidates. Test recall on the evaluation set in Phase 3.
 
-## 6. Lifecycle and retention
+---
+
+## 6. Lifecycle and Retention
 
 | Data | Rule |
 |---|---|
@@ -126,7 +290,46 @@ Login lookup (find a user by email before the tenant is known) needs a controlle
 | Refresh tokens | Delete after expiry |
 | Tenant deletion | Delete all rows by `tenant_id` and all files |
 
-## 7. Open decisions (resolved in the named phase)
+### Document Lifecycle & Async Retention Flow
+
+```mermaid
+flowchart TD
+    subgraph INGESTION ["1. Ingestion State Machine"]
+        UPLOAD["<b>Uploaded</b><br/>Raw file saved to MinIO & row inserted"]
+        PROC["<b>Processing</b><br/>Celery worker parsing, chunking & generating embeddings"]
+        READY["<b>Ready</b><br/>Chunks & HNSW vectors committed; searchable"]
+        FAIL["<b>Failed</b><br/>Error reason recorded; retry backoff"]
+
+        UPLOAD --> PROC
+        PROC -->|"Success"| READY
+        PROC -->|"Exhausted error"| FAIL
+    end
+
+    subgraph DELETION ["2. Soft-Delete & Async Cleanup"]
+        DEL_REQ["<b>Admin Deletes Document</b><br/>Sets deleted_at = now()"]
+        SEARCH_EX["<b>Immediate Search Exclusion</b><br/>All search queries filter WHERE deleted_at IS NULL"]
+        CLEANUP["<b>Async Cleanup Worker</b><br/>1. Hard-deletes document_chunks<br/>2. Evicts semantic cache<br/>3. Purges binary from MinIO storage"]
+
+        READY --> DEL_REQ
+        DEL_REQ --> SEARCH_EX
+        SEARCH_EX --> CLEANUP
+    end
+
+    style INGESTION fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style DELETION fill:#111827,stroke:#f87171,stroke-width:1px,color:#ffffff
+
+    style UPLOAD fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style PROC fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style READY fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style FAIL fill:#3f1418,stroke:#f87171,stroke-width:2px,color:#ffffff
+    style DEL_REQ fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style SEARCH_EX fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style CLEANUP fill:#3f1418,stroke:#ef4444,stroke-width:2px,color:#ffffff
+```
+
+---
+
+## 7. Open Decisions (Resolved in the Named Phase)
 
 | Decision | Phase |
 |---|---|
