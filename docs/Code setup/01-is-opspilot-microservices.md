@@ -28,6 +28,41 @@ This architecture is **not a microservices architecture**, and that choice is en
 | **Few Services (Service-Oriented)** | 2–3 specialized kitchens (e.g., Main Dining vs. Bakery). | 2–4 coarse-grained deployable applications communicating over an internal network. |
 | **Microservices** | Separate autonomous restaurants for every individual dish, each with its own manager, kitchen, and accounting. | Dozens of fine-grained services, each owning a distinct database, managed by separate teams, and deployed independently. |
 
+### Architectural Continuum & Comparison
+
+```mermaid
+flowchart TD
+    subgraph CHAOS ["Anti-Pattern: Chaotic Monolith ('Big Ball of Mud')"]
+        C_APP["<b>Single Untangled Codebase</b><br/>Circular imports • Shared mutable state • Spaghetti dependencies"]
+    end
+
+    subgraph MODULAR ["Chosen: Disciplined Modular Monolith"]
+        M_APP["<b>Single Deployable FastAPI Process</b><br/>Strict domain modules with private schemas & public service facades<br/>Enforced via CI import-linter contracts"]
+        M_WORK["<b>Async Worker Process (Celery)</b><br/>Heavy I/O & batch vectorization offloaded via Redis"]
+        M_APP -->|"Enqueue job"| M_WORK
+    end
+
+    subgraph MICRO ["Overkill: Distributed Microservices"]
+        MS_1["Service 1: Auth"]
+        MS_2["Service 2: Chat"]
+        MS_3["Service 3: Docs"]
+        MS_4["Service 4: Vector"]
+        MS_1 <-->|"Network Hop"| MS_2 <-->|"Network Hop"| MS_3 <-->|"Network Hop"| MS_4
+    end
+
+    style CHAOS fill:#111827,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style MODULAR fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style MICRO fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+
+    style C_APP fill:#3f1418,stroke:#ef4444,stroke-width:1px,color:#ffffff
+    style M_APP fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style M_WORK fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style MS_1 fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#ffffff
+    style MS_2 fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#ffffff
+    style MS_3 fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#ffffff
+    style MS_4 fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#ffffff
+```
+
 ### Canonical Definition of Microservices:
 1. Fine-grained services, each encapsulating a **single bounded business capability**.
 2. **Decentralized data management:** Each service strictly owns its database (cross-service database queries are forbidden).
@@ -57,6 +92,40 @@ Apply this test to any system before adopting microservices:
 ## 4. The "Microservices Tax"
 
 Every network boundary introduced into a system incurs significant engineering overhead:
+
+### The Microservices Tax vs. Monolith Efficiency
+
+```mermaid
+flowchart TD
+    subgraph TAX ["The Heavy Microservices Tax (Distributed Overhead)"]
+        T1["<b>Network Latency:</b> HTTP serialization on every chat token"]
+        T2["<b>Distributed State:</b> Sagas & two-phase commits instead of ACID"]
+        T3["<b>Operational Drag:</b> N Dockerfiles, N CI pipelines, service meshes"]
+        T4["<b>Distributed Failures:</b> Partial network timeouts & cascading errors"]
+        T1 --- T2 --- T3 --- T4
+    end
+
+    subgraph LEAN ["Modular Monolith Efficiency (High-Velocity Dev)"]
+        L1["<b>In-Process Calls:</b> Microsecond execution & native stack traces"]
+        L2["<b>ACID Transactions:</b> Single PostgreSQL database consistency"]
+        L3["<b>Single Pipeline:</b> One Docker image, one CI test suite, one command up"]
+        L4["<b>Direct Focus:</b> 100% engineering effort spent mastering AI and RAG"]
+        L1 --- L2 --- L3 --- L4
+    end
+
+    style TAX fill:#111827,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style LEAN fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+
+    style T1 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style T2 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style T3 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style T4 fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+
+    style L1 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style L2 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style L3 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style L4 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+```
 
 | Engineering Dimension | Monolith / Modular Monolith | Microservices Architecture |
 |---|---|---|
@@ -89,20 +158,59 @@ This architectural shift is formally recorded in [ADR-0003](../adr/0003-modular-
 ## 6. OpsPilot Component Architecture
 
 ```mermaid
-flowchart LR
-  Web["Next.js Web UI"] --> API
-  subgraph Core_Process ["Core API Process (FastAPI Modular Monolith)"]
-    API[HTTP & Routing Layer] --> Modules["Internal Modules:<br>identity · documents · chat · retrieval · llm · agent · escalation · usage · admin"]
-  end
-  Modules --> PG[("PostgreSQL + pgvector")]
-  Modules --> Redis[("Redis (Queue & Cache)")]
-  Modules --> S3[("MinIO Object Storage")]
-  Modules -->|Enqueue Ingestion| Redis
-  Redis --> Worker["Worker Process (Celery)"]
-  Worker --> PG
-  Worker --> S3
-  Modules --> ExternalLLM[("External LLM Provider")]
-  Modules -.->|Phase 7 Extraction| ModelServer["Dedicated Model Server (Embeddings & Reranker)"]
+flowchart TD
+    subgraph CLIENT ["1. Client Tier"]
+        WEB["<b>Next.js Web UI</b><br/>Streaming SSE chat & admin interface"]
+    end
+
+    subgraph MONOLITH ["2. Core API Process (FastAPI Modular Monolith)"]
+        API["<b>HTTP & Routing Layer</b><br/>Auth, rate limits, session context"]
+        MODULES["<b>Strict Internal Modules</b><br/>identity • documents • chat • retrieval • llm • agent • escalation • usage • admin"]
+        API --> MODULES
+    end
+
+    subgraph WORKER_PROC ["3. Background Execution"]
+        WORKER["<b>Celery Worker Process</b><br/>Document parse, chunk & embed"]
+    end
+
+    subgraph STORES ["4. Data & State Tier"]
+        PG[("<b>PostgreSQL + pgvector</b><br/>App data, RLS isolation & vectors")]
+        REDIS[("<b>Redis</b><br/>Broker & semantic cache")]
+        S3[("<b>MinIO Object Storage</b><br/>Original PDFs & files")]
+    end
+
+    subgraph EXT ["5. External Inference"]
+        EXT_LLM["<b>External LLM Provider</b><br/>Claude, OpenAI, Local Ollama"]
+        MS["<b>Dedicated Model Server (Phase 7)</b><br/>Isolated GPU embedding & reranking"]
+    end
+
+    WEB -->|"HTTPS REST + SSE"| API
+    MODULES --> PG
+    MODULES --> REDIS
+    MODULES --> S3
+    MODULES --> EXT_LLM
+    MODULES -.->|"Phase 7 extraction"| MS
+    MODULES -->|"Enqueue task"| REDIS
+    REDIS -->|"Consumes task"| WORKER
+    WORKER --> PG
+    WORKER --> S3
+    WORKER --> EXT_LLM
+
+    style CLIENT fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style MONOLITH fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style WORKER_PROC fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style STORES fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style EXT fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+
+    style WEB fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style API fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style MODULES fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style WORKER fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style PG fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style REDIS fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style S3 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style EXT_LLM fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style MS fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
 ```
 
 ---
@@ -135,6 +243,40 @@ To prevent a modular monolith from decaying into an untangled "Big Ball of Mud",
 6. **Isolated Unit Tests:** Each module maintains its own dedicated unit and contract test suite.
 
 Following these boundaries ensures that if any module ever needs to be extracted into an independent microservice, the refactoring cost is minimal.
+
+### Module Hygiene & CI Gate
+
+```mermaid
+flowchart TD
+    subgraph MODULE_FLOW ["Unidirectional Module Dependency Graph"]
+        CORE["<b>core</b><br/>Config, DB session, Security context"]
+        ID["<b>identity</b><br/>Tenants, Users, Auth tokens"]
+        CHAT["<b>chat</b><br/>Conversations & SSE streaming"]
+        RET["<b>retrieval</b><br/>Hybrid search & Rerank"]
+        LLM["<b>llm</b><br/>Gateway abstraction"]
+
+        CORE --> ID
+        ID --> CHAT
+        CHAT --> RET
+        RET --> LLM
+    end
+
+    subgraph CI_ENFORCE ["Automated CI Quality Gate"]
+        LINTER["<b>import-linter Contract Enforcement</b><br/>• Forbids circular dependencies<br/>• Forbids direct cross-module model/repo imports<br/>• Build FAILS if any boundary rule is violated"]
+    end
+
+    MODULE_FLOW -.->|"Strictly enforced on every PR"| CI_ENFORCE
+
+    style MODULE_FLOW fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style CI_ENFORCE fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+
+    style CORE fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ID fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style CHAT fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style RET fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style LLM fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style LINTER fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+```
 
 ---
 
