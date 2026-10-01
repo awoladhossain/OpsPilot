@@ -19,9 +19,34 @@
 | **Admin** (e.g., Nusrat, HR manager) | Owns company documents | Keep information correct, reduce repeated questions |
 | **Escalation contact** | HR / IT / Finance person | Receive only questions that need a human, with context |
 
+### Persona Architecture & Goals
+
+```mermaid
+flowchart TD
+    subgraph P1 ["Persona: Employee (e.g., Rafi)"]
+        EMP["<b>Rafi — Software Engineer</b><br/>• Needs policy answers quickly (leave, remote work, equipment)<br/>• Wants to avoid social hesitation & disturbing teammates"]
+    end
+
+    subgraph P2 ["Persona: Admin (e.g., Nusrat)"]
+        ADM["<b>Nusrat — HR Operations Lead</b><br/>• Manages source policies & access permissions<br/>• Wants to eliminate repetitive FAQ interruptions<br/>• Monitors unanswered questions to close knowledge gaps"]
+    end
+
+    subgraph P3 ["Persona: Escalation Contact"]
+        ESC["<b>Department Lead (HR / IT / Finance)</b><br/>• Handles complex or exception policy queries<br/>• Demands pre-packaged conversation context"]
+    end
+
+    style P1 fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P2 fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style P3 fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+
+    style EMP fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ADM fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style ESC fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+```
+
 ---
 
-## Epic A: Get answers
+## Epic A: Get Answers
 
 ### US-001 Ask a question
 As an **Employee**, I want to ask a question in plain language, so that I get the rule without searching documents. *(FR-020, FR-021)*
@@ -47,6 +72,56 @@ As an **Employee**, I want to reopen my past conversations, so that I can ask a 
 ### US-005 Rate an answer
 As an **Employee**, I want to mark an answer helpful or not, so that the company can improve it. *(FR-025)*
 
+### Conversational Answer Journey
+
+```mermaid
+flowchart TD
+    subgraph ASK ["1. Query & Streaming (US-001)"]
+        Q["<b>Employee Asks Question</b><br/>'How many casual leave days do I get?'"]
+        STREAM["<b>Real-Time Token Streaming</b><br/>Immediate visual feedback as words generate"]
+        Q --> STREAM
+    end
+
+    subgraph RESOLUTION ["2. Dual Grounding Branches"]
+        DECIDE{"<b>Found in Company Docs?</b>"}
+        
+        ANS["<b>Grounded Response (US-002)</b><br/>Policy answer displayed with source link & page"]
+        UNKNOWN["<b>Honest 'I Don't Know' (US-003)</b><br/>Explicit statement without hallucination"]
+        
+        STREAM --> DECIDE
+        DECIDE -- "Yes" --> ANS
+        DECIDE -- "No" --> UNKNOWN
+    end
+
+    subgraph ACTIONS ["3. Post-Answer Actions"]
+        CITE["<b>Click Source Citation</b><br/>Directly verify excerpt in original PDF"]
+        FEEDBACK["<b>Rate Answer (US-005)</b><br/>Thumbs up / down + optional comment"]
+        SAVE["<b>Session Preserved (US-004)</b><br/>Reopen chat history anytime for follow-ups"]
+        ESCALATE_BTN["<b>Escalate Button</b><br/>One-click transition to human help"]
+        
+        ANS --> CITE
+        ANS --> FEEDBACK
+        ANS --> SAVE
+        UNKNOWN --> ESCALATE_BTN
+    end
+
+    style ASK fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style RESOLUTION fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style ACTIONS fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+
+    style Q fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style STREAM fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style DECIDE fill:#3b2413,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+    style ANS fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style UNKNOWN fill:#3f1418,stroke:#f87171,stroke-width:2px,color:#ffffff
+    style CITE fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style FEEDBACK fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style SAVE fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style ESCALATE_BTN fill:#3f1418,stroke:#f87171,stroke-width:2px,color:#ffffff
+```
+
+---
+
 ## Epic B: Escalate
 
 ### US-010 Escalate an important question
@@ -54,7 +129,53 @@ As an **Employee**, I want to send my question to the right person with the cont
 
 - **Given** the assistant could not answer, **when** I click "Ask a person", **then** the contact receives my question, the conversation, and the sources found.
 
-## Epic C: Manage knowledge
+### Contextual Escalation Journey
+
+```mermaid
+flowchart TD
+    subgraph TRIGGER ["1. User Intent (US-010)"]
+        CLICK["<b>Employee Clicks 'Ask a Person'</b><br/>Triggered when answer is missing or query is critical"]
+    end
+
+    subgraph BUNDLE ["2. Automated Context Packaging"]
+        B1["<b>Original Question</b>"]
+        B2["<b>Full Chat Transcript</b>"]
+        B3["<b>Attempted Citations / Source References</b>"]
+        
+        CLICK --> B1
+        CLICK --> B2
+        CLICK --> B3
+    end
+
+    subgraph DISPATCH ["3. Targeted Human Routing"]
+        ROUTER{"<b>Identify Category</b>"}
+        HR["<b>HR Specialist</b><br/>Leaves, harassment, benefits"]
+        IT["<b>IT Desk</b><br/>Hardware, VPN, software access"]
+        FIN["<b>Finance Desk</b><br/>Reimbursements, salary"]
+        
+        B1 & B2 & B3 --> ROUTER
+        ROUTER -->|"HR Query"| HR
+        ROUTER -->|"Tech Issue"| IT
+        ROUTER -->|"Expense Issue"| FIN
+    end
+
+    style TRIGGER fill:#111827,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style BUNDLE fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style DISPATCH fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+
+    style CLICK fill:#3f1418,stroke:#f87171,stroke-width:2px,color:#ffffff
+    style B1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style B2 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style B3 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ROUTER fill:#3b2413,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+    style HR fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style IT fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style FIN fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+```
+
+---
+
+## Epic C: Manage Knowledge
 
 ### US-020 Upload documents
 As an **Admin**, I want to upload company documents, so that employees get answers from them. *(FR-010, FR-012)*
@@ -70,7 +191,43 @@ As an **Admin**, I want to delete or replace a document, so that employees never
 ### US-022 Control access
 As an **Admin**, I want to restrict some documents to certain roles, so that sensitive information stays private. *(FR-014, FR-004)*
 
-## Epic D: Understand usage
+### Knowledge Lifecycle & Access Control Flow
+
+```mermaid
+flowchart TD
+    subgraph UPLOAD ["1. Ingestion Flow (US-020)"]
+        UP["<b>Admin Uploads Policy Doc</b><br/>PDF, DOCX, TXT, Markdown"]
+        PROC["<b>Async Processing State</b><br/>Parsing • Chunking • Embedding"]
+        READY["<b>Status: Ready</b><br/>Immediately active for employee questions"]
+        FAIL["<b>Status: Failed</b><br/>Detailed error reason shown to admin"]
+        
+        UP --> PROC
+        PROC -->|"Success"| READY
+        PROC -->|"Error"| FAIL
+    end
+
+    subgraph GOVERN ["2. Access & Lifecycle (US-021 & US-022)"]
+        AUTH_TAG["<b>Role-Based Access Control (US-022)</b><br/>Restricted documents only answer queries from permitted roles"]
+        PURGE["<b>Document Deletion / Replacement (US-021)</b><br/>Old document deleted $\rightarrow$ Chunks immediately expelled from search"]
+    end
+
+    READY --> AUTH_TAG
+    READY --> PURGE
+
+    style UPLOAD fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style GOVERN fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+
+    style UP fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style PROC fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style READY fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style FAIL fill:#3f1418,stroke:#f87171,stroke-width:2px,color:#ffffff
+    style AUTH_TAG fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style PURGE fill:#3f1418,stroke:#ef4444,stroke-width:1px,color:#ffffff
+```
+
+---
+
+## Epic D: Understand Usage
 
 ### US-030 See knowledge gaps
 As an **Admin**, I want to see the questions nobody could answer, so that I know which documents to add. *(FR-051)*
@@ -78,14 +235,80 @@ As an **Admin**, I want to see the questions nobody could answer, so that I know
 ### US-031 See cost and usage
 As an **Admin**, I want to see questions, tokens, and cost per day, so that I can control spending. *(FR-050)*
 
+### Admin Analytics & Knowledge Improvement Loop
+
+```mermaid
+flowchart TD
+    subgraph METRICS ["1. Usage & Cost Telemetry (US-031)"]
+        M1["<b>Question Volume</b><br/>Total daily / weekly queries"]
+        M2["<b>Token Consumption & Spend</b><br/>LLM tokens and financial cost tracking"]
+    end
+
+    subgraph GAPS ["2. Knowledge Gap Discovery (US-030)"]
+        LOG["<b>Unanswered Questions Log</b><br/>List of queries that triggered 'I don't know'"]
+    end
+
+    subgraph ACTION_LOOP ["3. Feedback Loop & Doc Improvement"]
+        ADMIN["<b>Admin Reviews Analytics</b><br/>Spots recurring unanswered questions"]
+        UPLOAD_NEW["<b>Author & Upload Missing Policy</b><br/>Knowledge base expands directly addressing user needs"]
+        
+        ADMIN --> UPLOAD_NEW
+    end
+
+    M1 & M2 --> ADMIN
+    LOG --> ADMIN
+
+    style METRICS fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style GAPS fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style ACTION_LOOP fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+
+    style M1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style M2 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style LOG fill:#3f1418,stroke:#f87171,stroke-width:2px,color:#ffffff
+    style ADMIN fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style UPLOAD_NEW fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+```
+
+---
+
 ## Epic E: Account
 
 ### US-040 Set up my organization
 As a **Company owner**, I want to register my company and invite my team, so that we can start using OpsPilot. *(FR-001, FR-002, FR-003)*
 
+### Organization Onboarding Journey
+
+```mermaid
+flowchart TD
+    subgraph SETUP ["1. Registration & Provisioning (US-040)"]
+        OWNER["<b>Company Owner</b><br/>Registers company account"]
+        ORG["<b>Tenant Workspace Created</b><br/>Dedicated database schema & security boundary"]
+        OWNER --> ORG
+    end
+
+    subgraph TEAM ["2. Team Invitation & Roles"]
+        INVITE["<b>Send Email Invitations</b>"]
+        R_ADM["<b>Admin Role</b><br/>Manage docs & settings"]
+        R_EMP["<b>Employee Role</b><br/>Query knowledge base"]
+        
+        ORG --> INVITE
+        INVITE --> R_ADM
+        INVITE --> R_EMP
+    end
+
+    style SETUP fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style TEAM fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+
+    style OWNER fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ORG fill:#271b3d,stroke:#c084fc,stroke-width:2px,color:#ffffff
+    style INVITE fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#ffffff
+    style R_ADM fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style R_EMP fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+```
+
 ---
 
-## Story to requirement map
+## Story to Requirement Map
 
 | Story | Requirements |
 |---|---|
