@@ -44,12 +44,80 @@ Project planning is **determining what to build now, what to build next, in what
 
 ## 2. The 9-Step Planning Framework
 
+```mermaid
+flowchart TD
+    subgraph PHASE_INIT ["1. Strategic Foundation"]
+        S1["<b>Step 1:</b> Define Vision & Final Demo Target"]
+        S2["<b>Step 2:</b> Slice Vertically (End-to-End increments)"]
+        S3["<b>Step 3:</b> Frontload Technical Risks (Run 2h Spikes)"]
+        S1 --> S2 --> S3
+    end
+
+    subgraph PHASE_DECOMP ["2. Milestone & Task Decomposition"]
+        S4["<b>Step 4:</b> Define Phases with Objective Exit Criteria"]
+        S5["<b>Step 5:</b> Decompose into Granular Tasks (1–3.5 hours)"]
+        S6["<b>Step 6:</b> Realistic Estimation (1.5x learning multiplier + 20% buffer)"]
+        S3 --> S4 --> S5 --> S6
+    end
+
+    subgraph PHASE_EXEC ["3. Execution & Cadence"]
+        S7["<b>Step 7:</b> Calculate Real Capacity (Target hours x 0.70)"]
+        S8["<b>Step 8:</b> Kanban Board Management (WIP Limit: 2)"]
+        S9["<b>Step 9:</b> Rolling-Wave Planning & Weekly Sunday Reviews"]
+        S6 --> S7 --> S8 --> S9
+    end
+
+    style PHASE_INIT fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style PHASE_DECOMP fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style PHASE_EXEC fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+
+    style S1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style S2 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style S3 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style S4 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style S5 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style S6 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style S7 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style S8 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style S9 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+```
+
 ### Step 1: Define the Vision and the Final Demo
 Establish the destination before planning the journey.
 - **Vision:** "A multi-tenant platform where organizations upload documents, employees receive sourced answers in seconds, and unanswered questions can be escalated with full context to designated human contacts."
 - **Final Demo Target:** A live production URL with HTTPS, admin and employee login, policy PDF ingestion, streaming chat answers with clickable page citations, an "I don't know" response on unanswerable queries, email escalation, human-in-the-loop action confirmation, and a live Grafana observability dashboard.
 
 ### Step 2: Slice Vertically, Not Horizontally
+
+```mermaid
+flowchart TD
+    subgraph BAD ["Anti-Pattern: Horizontal Layering (Fails at Integration)"]
+        H1["Week 1–3: Implement ALL Database Schemas"]
+        H2["Week 4–6: Implement ALL Backend REST Endpoints"]
+        H3["Week 7–9: Implement ALL Frontend UI Screens"]
+        H4["Week 10: Attempt Integration $\rightarrow$ EVERYTHING BREAKS"]
+        H1 --> H2 --> H3 --> H4
+    end
+
+    subgraph GOOD ["Best Practice: Vertical Slices (Working Demo Every Phase)"]
+        V1["<b>Phase 1 Slice:</b> Auth + Streaming Chat<br/>UI $\rightarrow$ API $\rightarrow$ Postgres $\rightarrow$ Working Demo"]
+        V2["<b>Phase 2 Slice:</b> Document Upload & RAG<br/>Upload $\rightarrow$ Worker $\rightarrow$ Vector Search $\rightarrow$ Cited Answer Demo"]
+        V3["<b>Phase 3 Slice:</b> Retrieval Quality & Benchmarks<br/>Hybrid Search $\rightarrow$ Reranker $\rightarrow$ Ragas Evaluation Table"]
+        V1 --> V2 --> V3
+    end
+
+    style BAD fill:#111827,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style GOOD fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+
+    style H1 fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#ffffff
+    style H2 fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#ffffff
+    style H3 fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#ffffff
+    style H4 fill:#3f1418,stroke:#ef4444,stroke-width:2px,color:#ffffff
+
+    style V1 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style V2 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style V3 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+```
 
 | Anti-Pattern: Horizontal Layers | Best Practice: Vertical Slices |
 |---|---|
@@ -99,6 +167,36 @@ $$\text{Realistic Weekly Capacity} = \text{Target Hours} \times 0.70$$
 OpsPilot assumes **10 focused engineering hours per week**. If your true capacity is 6 hours, adjust target milestone dates proportionally ($1.67\times$) rather than cutting quality.
 
 ### Step 8: Visual Tracking via Kanban
+
+```mermaid
+flowchart TD
+    subgraph BOARD ["Kanban Board Flow"]
+        BACKLOG["<b>Backlog</b><br/>Future prioritized tasks"]
+        READY["<b>Ready for Dev</b><br/>Specified with clear DoD"]
+        WIP["<b>In Progress</b><br/>⚡ STRICT WIP LIMIT: 2<br/>Maximum 2 active tasks"]
+        REVIEW["<b>In Review / PR</b><br/>CI green, tests passing"]
+        DONE["<b>Done (Merged)</b><br/>Demoable & documented"]
+
+        BACKLOG --> READY --> WIP --> REVIEW --> DONE
+    end
+
+    subgraph REVIEW_CYCLE ["Weekly Feedback Loop"]
+        SUN["<b>Sunday Review (30 min)</b><br/>Review burndown, unblock bottlenecks & commit to top 3 tasks"]
+        DONE -.-> SUN
+        SUN -.-> READY
+    end
+
+    style BOARD fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style REVIEW_CYCLE fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+
+    style BACKLOG fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#ffffff
+    style READY fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style WIP fill:#3b2413,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+    style REVIEW fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style DONE fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style SUN fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+```
+
 Manage execution on a GitHub Project Board:
 $$\text{Backlog} \longrightarrow \text{Ready} \longrightarrow \text{In Progress (WIP Limit: 2)} \longrightarrow \text{In Review} \longrightarrow \text{Done}$$
 - **WIP Limit:** Never allow more than 2 tasks in progress simultaneously. Context switching kills velocity.
@@ -126,6 +224,24 @@ $$\text{Backlog} \longrightarrow \text{Ready} \longrightarrow \text{In Progress 
 ---
 
 ## 4. The 5-Stage Engineering Learning Loop
+
+```mermaid
+flowchart TD
+    S_LEARN["<b>1. Learn (30–45 min)</b><br/>Read official docs & upstream source code<br/>Understand the core abstraction"]
+    S_BUILD["<b>2. Build</b><br/>Implement the pattern directly in the project codebase"]
+    S_BREAK["<b>3. Stress-Test</b><br/>Intentionally break it (e.g., edge cases, disconnects, tiny chunk sizes)"]
+    S_EXPLAIN["<b>4. Explain (5 sentences)</b><br/>Summarize mechanism in simple words in technical notes"]
+    S_VERIFY["<b>5. Verify Checkpoints</b><br/>Test understanding against 16-learning-checkpoints.md quiz"]
+
+    S_LEARN --> S_BUILD --> S_BREAK --> S_EXPLAIN --> S_VERIFY
+    S_VERIFY -->|"Next concept"| S_LEARN
+
+    style S_LEARN fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style S_BUILD fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style S_BREAK fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style S_EXPLAIN fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style S_VERIFY fill:#3b2413,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+```
 
 To avoid being a superficial "copy-paste" developer:
 1. **Learn (30–45 min):** Read official documentation and upstream source code. Master the core abstraction.
