@@ -4,7 +4,9 @@
 **Inputs:** [02 FR](../02-functional-requirements.md), [03 NFR](../03-non-functional-requirements.md), [05 Scope](../05-scope-assumptions-risks.md)
 **Style:** Modular monolith with a separate worker process. Not microservices (see [ADR-0003](../adr/0003-modular-monolith-not-microservices.md) and [explainer](../Code%20setup/01-is-opspilot-microservices.md)).
 
-## 1. Architecture drivers
+---
+
+## 1. Architecture Drivers
 
 | Requirement | Impact on design |
 |---|---|
@@ -16,7 +18,9 @@
 | NFR-012, FR-041 Prompt injection, confirmation | Agent only proposes actions; retrieved text treated as data |
 | NFR-004..007 AI quality | Hybrid retrieval, "I don't know" threshold, evaluation in CI |
 
-## 2. Capacity assumptions
+---
+
+## 2. Capacity Assumptions
 
 | Item | Estimate |
 |---|---|
@@ -27,98 +31,186 @@
 
 One modest server is enough for v1 (~8 GB RAM assumption for the lean production stack; measure in Phase 6).
 
-## 3. System context
+---
+
+## 3. System Context (C4 Level 1)
 
 ```mermaid
-flowchart LR
-  Emp[Employee] --> OP[OpsPilot]
-  Adm[Admin] --> OP
-  OP --> LLM[LLM and embedding provider]
-  OP --> Mail[Email provider]
-  Mail --> Contact[Escalation contact]
-  OP -.->|optional| Tix[Ticket system]
-  Client[MCP client] -.->|Phase 4| OP
+flowchart TD
+    subgraph ACTORS ["Human Actors & Consumers"]
+        EMP["<b>Employee</b><br/>Queries policies, reviews citations & escalates"]
+        ADM["<b>Company Admin</b><br/>Uploads docs, manages access & tracks usage"]
+        ESC["<b>Escalation Contact</b><br/>Receives forwarded edge-case tickets"]
+        MCP["<b>MCP Client (Phase 4)</b><br/>External AI agent connecting via MCP protocol"]
+    end
+
+    subgraph CORE ["Core Platform Boundary"]
+        OP["<b>OpsPilot Platform</b><br/>Grounded enterprise AI assistant"]
+    end
+
+    subgraph EXT ["External Services"]
+        LLM["<b>LLM & Embedding Providers</b><br/>Claude, OpenAI, Local Ollama"]
+        MAIL["<b>Transactional Email Provider</b><br/>SMTP / Resend / SendGrid"]
+        TIX["<b>Ticketing System API (Optional)</b><br/>Jira / Linear / ServiceNow"]
+    end
+
+    EMP -->|"HTTPS / SSE"| OP
+    ADM -->|"Management actions"| OP
+    MCP -.->|"MCP Protocol"| OP
+    OP -->|"Escalation notification"| MAIL
+    MAIL --> ESC
+    OP -->|"Inference & Embeddings"| LLM
+    OP -.->|"Create ticket"| TIX
+
+    style ACTORS fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style CORE fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style EXT fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+
+    style EMP fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ADM fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style ESC fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style MCP fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style OP fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style LLM fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style MAIL fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style TIX fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
 ```
 
-## 4. Containers (deployable units)
+---
+
+## 4. Containers (Deployable Units — C4 Level 2)
 
 ```mermaid
-flowchart TB
-  subgraph Client
-    WEB["Web app (Next.js)"]
-  end
-  subgraph App
-    API["API process (FastAPI modular monolith)"]
-    WK["Worker process (Celery, same codebase)"]
-  end
-  subgraph Data
-    PG[("PostgreSQL + pgvector")]
-    RD[("Redis")]
-    S3[("Object storage (MinIO)")]
-  end
-  subgraph Observability
-    PR[Prometheus]
-    GR[Grafana]
-    LK[Loki]
-    AL[Grafana Alloy]
-    TP[Tempo]
-    LF[Langfuse]
-  end
-  LLM[("LLM and embedding provider")]
-  MS["Model server (Phase 7, optional)"]
+flowchart TD
+    subgraph CLIENT_TIER ["1. Client Tier"]
+        WEB["<b>Web Application (Next.js)</b><br/>Real-time SSE chat & admin UI"]
+    end
 
-  WEB -->|"HTTPS REST + SSE"| API
-  API --> PG
-  API --> RD
-  API --> S3
-  API --> LLM
-  API -.-> MS
-  API -->|enqueue jobs| RD
-  RD -->|jobs| WK
-  WK --> PG
-  WK --> S3
-  WK --> LLM
-  API -.-> PR
-  WK -.-> PR
-  API -.-> LF
-  AL --> LK
-  PR --> GR
-  LK --> GR
-  TP --> GR
+    subgraph APP_TIER ["2. Application Tier (Same Codebase)"]
+        API["<b>API Process (FastAPI Modular Monolith)</b><br/>Auth, business logic, RAG, agent workflows"]
+        WK["<b>Worker Process (Celery Worker)</b><br/>Background parsing, chunking & vectorization"]
+    end
+
+    subgraph DATA_TIER ["3. Persistence & Storage Layer"]
+        PG[("<b>PostgreSQL + pgvector</b><br/>App data, relational tenancy & vector store")]
+        RD[("<b>Redis</b><br/>Celery broker, semantic cache & rate limiter")]
+        S3[("<b>MinIO Object Storage</b><br/>Raw uploaded files")]
+    end
+
+    subgraph OBS_TIER ["4. Observability Stack"]
+        PR["<b>Prometheus</b><br/>Metrics aggregation"]
+        GR["<b>Grafana</b><br/>Unified dashboards"]
+        LK["<b>Loki + Alloy</b><br/>Structured log shipping"]
+        TP["<b>Tempo</b><br/>Distributed tracing"]
+        LF["<b>Langfuse</b><br/>LLM tracing & eval"]
+    end
+
+    subgraph EXT_SVCS ["5. External & Optional Inference"]
+        LLM["<b>LLM & Embedding Provider</b><br/>Cloud frontier APIs"]
+        MS["<b>Dedicated Model Server (Phase 7)</b><br/>Local GPU embeddings & reranking"]
+    end
+
+    WEB -->|"HTTPS REST + SSE"| API
+    API -->|"Relational & vector queries"| PG
+    API -->|"Cache & sessions"| RD
+    API -->|"Store raw files"| S3
+    API -->|"Token generation"| LLM
+    API -.->|"Inference offload"| MS
+    API -->|"Enqueue background job"| RD
+    RD -->|"Pulls jobs"| WK
+    WK -->|"Write chunks & vectors"| PG
+    WK -->|"Read raw files"| S3
+    WK -->|"Batch embeddings"| LLM
+
+    API -.->|"Emits metrics"| PR
+    WK -.->|"Emits metrics"| PR
+    API -.->|"Traces"| LF
+    API -.->|"OpenTelemetry"| TP
+    PR --> GR
+    LK --> GR
+    TP --> GR
+
+    style CLIENT_TIER fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style APP_TIER fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style DATA_TIER fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style OBS_TIER fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style EXT_SVCS fill:#111827,stroke:#64748b,stroke-width:1px,color:#ffffff
+
+    style WEB fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style API fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style WK fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style PG fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style RD fill:#3f1418,stroke:#f87171,stroke-width:1px,color:#ffffff
+    style S3 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style PR fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style GR fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style LK fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style TP fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style LF fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style LLM fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style MS fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
 ```
 
-## 5. Modules inside the API process
+---
+
+## 5. Modules Inside the API Process (Modular Monolith)
 
 ```mermaid
-flowchart TB
-  subgraph API["API process"]
-    CHAT[chat]
-    AGENT[agent]
-    RET[retrieval]
-    LLMG["llm (gateway)"]
-    DOCS[documents]
-    ESC[escalation]
-    USE[usage]
-    ADM[admin]
-    ID["identity (tenants, users, auth)"]
-  end
-  CHAT --> RET
-  CHAT --> LLMG
-  CHAT --> AGENT
-  CHAT --> USE
-  AGENT --> RET
-  AGENT --> LLMG
-  AGENT --> ESC
-  RET --> LLMG
-  ADM --> USE
-  ADM --> DOCS
-  DOCS --> ING["ingestion (runs in worker)"]
-  ING --> LLMG
+flowchart TD
+    subgraph FOUNDATION ["Shared Core Foundation"]
+        CORE["<b>core</b><br/>Config, DB Session, Security Context, Logging, Telemetry"]
+        ID["<b>identity</b><br/>Tenants, Users, Auth, Roles, Invitations"]
+        CORE --> ID
+    end
+
+    subgraph DOMAINS ["Internal Domain Modules (API Process)"]
+        ADM["<b>admin</b><br/>Read-only dashboard metrics"]
+        CHAT["<b>chat</b><br/>Conversations, SSE streaming, Citations"]
+        AGENT["<b>agent</b><br/>LangGraph state machine, HITL tools"]
+        RET["<b>retrieval</b><br/>Hybrid vector + BM25, Reranker"]
+        LLMG["<b>llm</b><br/>Gateway abstraction, Fallback, Token accounting"]
+        DOCS["<b>documents</b><br/>Upload, Metadata, Categories, Deletion"]
+        ESC["<b>escalation</b><br/>Contacts & Email dispatch"]
+        USE["<b>usage</b><br/>Quota counters & Cost events"]
+    end
+
+    subgraph ASYNC_MOD ["Worker Module"]
+        ING["<b>ingestion (runs in Celery worker)</b><br/>Parse, Chunk, Embed & Commit chunks"]
+    end
+
+    CHAT --> RET
+    CHAT --> LLMG
+    CHAT --> AGENT
+    CHAT --> USE
+    AGENT --> RET
+    AGENT --> LLMG
+    AGENT --> ESC
+    RET --> LLMG
+    ADM --> USE
+    ADM --> DOCS
+    DOCS --> ING
+    ING --> LLMG
+
+    style FOUNDATION fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style DOMAINS fill:#111827,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style ASYNC_MOD fill:#111827,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+
+    style CORE fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ID fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style ADM fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style CHAT fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style AGENT fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style RET fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style LLMG fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style DOCS fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ESC fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style USE fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ING fill:#3b2413,stroke:#fbbf24,stroke-width:2px,color:#ffffff
 ```
 
 All modules depend on a small `core` package (configuration, database session, security context, logging, telemetry) and on `identity` for the current tenant and user.
 
-### Module responsibilities
+### Module Responsibilities
 
 | Module | Responsibility (one line) | Owns tables |
 |---|---|---|
@@ -133,13 +225,15 @@ All modules depend on a small `core` package (configuration, database session, s
 | usage | Usage events, caps, reports | usage_events |
 | admin | Dashboard queries across modules (read-only through public interfaces) | none |
 
-### Boundary rules (enforced in CI)
+### Boundary Rules (Enforced in CI)
 
 1. Each module exposes a public `service` interface; everything else is private.
 2. A module never imports another module's `models` or `repository`.
 3. A module reads or writes another module's data only through that module's service.
 4. Dependencies point one way (see diagram); no cycles.
 5. Rules are written as contracts in `import-linter` and checked on every pull request.
+
+---
 
 ## 6. Components
 
@@ -154,7 +248,43 @@ All modules depend on a small `core` package (configuration, database session, s
 | Observability | Metrics, logs, traces, LLM traces | Prometheus, Grafana, Loki, Alloy, Tempo, Langfuse | Separate host later |
 | Model server (optional) | Embeddings and reranker models | Local model server container | GPU host |
 
-## 7. Evolution path (build in slices)
+---
+
+## 7. Evolution Path (Build in Slices)
+
+```mermaid
+flowchart TD
+    subgraph PHASE_A ["Foundation & Core RAG"]
+        P01["<b>Phase 0-1: Foundation</b><br/>FastAPI API, Postgres RLS, JWT Auth, Streaming chat"]
+        P02["<b>Phase 2: Ingestion & Storage</b><br/>Redis + Celery worker, MinIO S3, PDF Ingestion, Citation UI"]
+        P03["<b>Phase 3: Retrieval Quality</b><br/>Hybrid search (BM25 + pgvector), Reranker, Ragas CI eval"]
+        P01 --> P02 --> P03
+    end
+
+    subgraph PHASE_B ["Agents, Governance & Production"]
+        P04["<b>Phase 4: Agent & Tools</b><br/>LangGraph agent, Propose-only tools, Human escalation, MCP server"]
+        P05["<b>Phase 5: Reliability & Quotas</b><br/>Tenant spending caps, Semantic cache, LLM fallback circuit"]
+        P06["<b>Phase 6: Production Observability</b><br/>Prometheus, Grafana, OpenTelemetry, Langfuse, Live VPS deploy"]
+        P03 --> P04 --> P05 --> P06
+    end
+
+    subgraph PHASE_C ["Scale & Specialization"]
+        P07["<b>Phase 7: Model Server Extraction</b><br/>Dedicated GPU model server for embeddings & reranking"]
+        P06 --> P07
+    end
+
+    style PHASE_A fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style PHASE_B fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style PHASE_C fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+
+    style P01 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P02 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P03 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P04 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style P05 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style P06 fill:#142918,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    style P07 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+```
 
 | Phase | What exists | Demo |
 |---|---|---|
@@ -166,7 +296,9 @@ All modules depend on a small `core` package (configuration, database session, s
 | 6 | + full observability, CI/CD, deployment | Live URL with dashboards and alerts |
 | 7 | + model server, routing, fine-tuning experiment | Extraction and benchmark write-up |
 
-## 8. When we would extract a service
+---
+
+## 8. When We Would Extract a Service
 
 | Trigger | Action |
 |---|---|
@@ -174,7 +306,9 @@ All modules depend on a small `core` package (configuration, database session, s
 | A module has a different team or release cycle | Extract it |
 | Measured bottleneck in one module | Scale or extract it |
 
-## 9. Technology choices
+---
+
+## 9. Technology Choices
 
 | Area | Choice | Main alternative | ADR |
 |---|---|---|---|
@@ -187,7 +321,9 @@ All modules depend on a small `core` package (configuration, database session, s
 | Authentication | Own JWT and refresh tokens using proven libraries | External identity provider | ADR-0008 |
 | Agent | LangGraph, propose-only tools | Hand-written loop | ADR-0009 |
 
-## 10. Risks specific to this architecture
+---
+
+## 10. Risks Specific to This Architecture
 
 | Risk | Mitigation |
 |---|---|
