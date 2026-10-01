@@ -8,6 +8,47 @@
 
 ---
 
+## Workload Distribution & Rolling-Wave Planning
+
+```mermaid
+flowchart TD
+    subgraph SPRINT_READY ["Granular Sprint Backlog (Tasks: 1 - 3.5h each)"]
+        P0["<b>Phase 0: Setup & Skeleton</b><br/>11.0h • 7 Granular Tasks • P0-01 .. P0-07"]
+        P1["<b>Phase 1: Multi-Tenant Foundation</b><br/>31.0h • 12 Granular Tasks • P1-01 .. P1-12"]
+        P2["<b>Phase 2: Basic RAG Engine</b><br/>35.5h • 12 Granular Tasks • P2-01 .. P2-12"]
+        
+        P0 --> P1 --> P2
+    end
+
+    subgraph ROLLING_WAVE ["Just-In-Time Elaboration (Epics / Stories)"]
+        P3["<b>Phase 3: Eval & Better RAG</b><br/>34.0h • 10 Stories (P3-S1 .. P3-S10)"]
+        P4["<b>Phase 4: Agents & Escalation</b><br/>31.0h • 7 Stories (P4-S1 .. P4-S7)"]
+        P5["<b>Phase 5: Production Hardening</b><br/>33.0h • 9 Stories (P5-S1 .. P5-S9)"]
+        P6["<b>Phase 6: Observability & CD</b><br/>32.0h • 8 Stories (P6-S1 .. P6-S8)"]
+        P7["<b>Phase 7: Advanced Depth (Stretch)</b><br/>37.0h • 6 Stories (P7-S1 .. P7-S6)"]
+
+        P2 --> P3
+        P3 --> P4
+        P3 --> P5
+        P4 --> P5
+        P5 --> P6 --> P7
+    end
+
+    style SPRINT_READY fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style ROLLING_WAVE fill:#111827,stroke:#c084fc,stroke-width:1px,color:#ffffff
+
+    style P0 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style P2 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P3 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style P4 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style P5 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style P6 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style P7 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+```
+
+---
+
 ## Phase 0: Setup (11 h)
 
 | ID | Task | Est | Depends | Done when |
@@ -19,6 +60,8 @@
 | P0-05 | Add `/health/live` and `/health/ready` (database check) with tests | 1 | P0-04 | Ready returns failure when the database is stopped, proven by a test |
 | P0-06 | Create CI v1 (lint, type check, tests) and protect `main` | 1.5 | P0-05 | Failing test blocks the pull request merge |
 | P0-07 | Create GitHub Project board, labels, issue and PR templates; create Phase 1 issues | 1 | P0-01 | Board with columns and WIP rule; 12 Phase 1 issues created |
+
+---
 
 ## Phase 1: Foundation (31 h)
 
@@ -37,6 +80,8 @@
 | P1-11 | Conversations and messages tables and endpoints; SSE chat without retrieval | 4 | P1-06, P1-10 | Tokens stream; messages and usage events saved; disconnect cancels generation (test) |
 | P1-12 | Monthly token cap check (429), coverage gate in CI, update ADRs | 1.5 | P1-11 | Over-cap request returns 429; coverage threshold enforced |
 
+---
+
 ## Phase 2: Basic RAG (35.5 h)
 
 | ID | Task | Est | Depends | Done when |
@@ -54,7 +99,9 @@
 | P2-11 | Minimal UI: login, upload and status list, chat with citations | 6 | P2-09, P2-10 | Works end to end at phone width |
 | P2-12 | Smoke test, demo script and recording, phase retro | 1 | all | Demo recorded; exit criteria checked |
 
-## Phase 3: Better RAG and evaluation (34 h)
+---
+
+## Phase 3: Better RAG and Evaluation (34 h)
 
 | ID | Story | Est | Done when |
 |---|---|---|---|
@@ -69,7 +116,9 @@
 | P3-S9 | Evaluation in CI with quality gate (small set per PR, full set on schedule) | 3 | PR fails when score drops past margin |
 | P3-S10 | Categories and role-based document access (FR-014), role update syncs chunks | 3 | Employee cannot get answers from restricted documents (test) |
 
-## Phase 4: Agents and escalation (31 h)
+---
+
+## Phase 4: Agents and Escalation (31 h)
 
 | ID | Story | Est | Done when |
 |---|---|---|---|
@@ -81,7 +130,9 @@
 | P4-S6 | Prompt injection test set and guardrails v1 | 4 | Attack set passes in CI |
 | P4-S7 | Agent evaluation (tool selection accuracy) | 3 | Accuracy reported |
 
-## Phase 5: Production hardening and admin (33 h)
+---
+
+## Phase 5: Production Hardening and Admin (33 h)
 
 | ID | Story | Est | Done when |
 |---|---|---|---|
@@ -95,7 +146,9 @@
 | P5-S8 | Load test baseline (k6) and fix top bottleneck | 4 | Report with before and after |
 | P5-S9 | URL ingestion (FR-011) and answer feedback endpoint (FR-025) | 3 | Web page searchable; rating stored |
 
-## Phase 6: Observability, CI/CD, deployment (32 h)
+---
+
+## Phase 6: Observability, CI/CD, Deployment (32 h)
 
 | ID | Story | Est | Done when |
 |---|---|---|---|
@@ -108,7 +161,9 @@
 | P6-S7 | CI/CD: build image, scan, push to registry, deploy on merge | 5 | Merge to main deploys; smoke test; rollback works |
 | P6-S8 | Server setup, reverse proxy with HTTPS, secrets, backup script and restore drill | 5 | Live HTTPS URL; restore tested |
 
-## Phase 7: Advanced, stretch (37 h)
+---
+
+## Phase 7: Advanced Depth (Stretch, 37 h)
 
 | ID | Story | Est | Done when |
 |---|---|---|---|
@@ -119,16 +174,18 @@
 | P7-S5 | Final load test and capacity report | 3 | Report against NFR-018 |
 | P7-S6 | Write-up (architecture and lessons), README polish, demo video | 6 | Published post and video |
 
-## Totals
+---
 
-| Phase | Hours |
-|---|---|
-| 0 | 11 |
-| 1 | 31 |
-| 2 | 35.5 |
-| 3 | 34 |
-| 4 | 31 |
-| 5 | 33 |
-| 6 | 32 |
-| 7 | 37 |
-| **Total** | **244.5** |
+## Workload Totals
+
+| Phase | Hours | Focus Area |
+|---|---|---|
+| 0 | 11.0 | Setup, CI skeleton, Docker Compose |
+| 1 | 31.0 | Multi-tenant foundation, Auth, RLS, SSE |
+| 2 | 35.5 | Document ingestion, pgvector HNSW, RAG UI |
+| 3 | 34.0 | Evaluation dataset, Hybrid search, Reranking |
+| 4 | 31.0 | Human escalation, HITL agents, MCP tool |
+| 5 | 33.0 | Redis rate limiting, caching, admin analytics |
+| 6 | 32.0 | Observability stack, alerting, automated deploy |
+| 7 | 37.0 | Model server, routing, fine-tuning stretch |
+| **Total** | **244.5** | **Complete Production Portfolio Project** |

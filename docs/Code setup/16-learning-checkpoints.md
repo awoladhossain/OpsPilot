@@ -1,8 +1,58 @@
 # 16 — Learning Checkpoints (Concept & Interview Mastery)
 
+**Status:** Approved v1 (reference) | **Last updated:** 2026-10-01
+
 > This document is your proof of genuine engineering depth. At the conclusion of each phase, answer these checkpoint questions **in your own words, in 3–5 concise sentences** in your technical notes (`docs/notes/`).
 > **If you struggle to answer a question, revisit that concept immediately.** The passing criteria: **Explain the concept clearly to a peer without looking at references.** These are the exact conceptual questions asked in Staff-level AI & backend engineering interviews.
 > **Build Proof:** The verifiable, demoable artifact built during this phase that you can showcase during technical interviews.
+
+---
+
+## Technical Concept Mastery & Interview Readiness Loop
+
+```mermaid
+flowchart TD
+    subgraph PHASE_KNOWLEDGE ["Phase Concept Mastery Progression"]
+        K0["<b>Phase 0:</b> Linux, Containers, SELinux, CI Isolation"]
+        K1["<b>Phase 1:</b> PostgreSQL RLS, Connection Pooling, JWT Rotation, Asyncio"]
+        K2["<b>Phase 2:</b> Embeddings, HNSW vs IVFFlat, Idempotent Celery, Grounding"]
+        K3["<b>Phase 3:</b> Hit Rate & MRR, Hybrid BM25+RRF, Cross-Encoders, Eval Gates"]
+        K4["<b>Phase 4:</b> Tool Calling, HITL State Machines, Prompt Injection, MCP"]
+        K5["<b>Phase 5:</b> Token Bucket Rate Limits, Distributed Caching, Circuit Breakers"]
+        K6["<b>Phase 6:</b> High Cardinality Metrics, W3C Trace Context, SLOs, Auto-Deploy"]
+        K7["<b>Phase 7:</b> Dynamic Batching, LoRA PEFT, Quantization, Model Routing"]
+
+        K0 --> K1 --> K2 --> K3 --> K4 --> K5 --> K6 --> K7
+    end
+
+    subgraph DRILL_GATE ["Verification Gate & Interview Simulation"]
+        NOTE["<b>1. Note Synthesizer:</b> Write 3-5 sentence explanations in docs/notes/"]
+        RUBRIC{"<b>2. Peer Explain Test:</b> Can you explain without references?"}
+        DEMO["<b>3. Build Proof Showcase:</b> Verify live demoable artifact"]
+        INT["<b>4. 10-Minute Technical Interview Simulation:</b> Staff-level defense"]
+
+        K7 --> NOTE --> RUBRIC
+        RUBRIC -->|"Hesitant / Unclear"| NOTE
+        RUBRIC -->|"Pass"| DEMO --> INT
+    end
+
+    style PHASE_KNOWLEDGE fill:#111827,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style DRILL_GATE fill:#111827,stroke:#4ade80,stroke-width:1px,color:#ffffff
+
+    style K0 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style K1 fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style K2 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style K3 fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style K4 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style K5 fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style K6 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+    style K7 fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+
+    style NOTE fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
+    style RUBRIC fill:#3b2413,stroke:#fbbf24,stroke-width:1px,color:#ffffff
+    style DEMO fill:#142918,stroke:#4ade80,stroke-width:1px,color:#ffffff
+    style INT fill:#271b3d,stroke:#c084fc,stroke-width:1px,color:#ffffff
+```
 
 ---
 
