@@ -45,6 +45,7 @@ Read the design guide, architecture decision, template, then the reference solut
 ## 4. Code setup
 
 - [Code setup guide](04-code-setup/00-code-setup-guide.md)
+- [Local project bootstrap commands](04-code-setup/01-local-project-bootstrap.md)
 
 ## 5. Templates and decisions
 
