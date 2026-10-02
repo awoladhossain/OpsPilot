@@ -1,7 +1,7 @@
 [project]
-name = "backend"
+name = "opspilot-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "OpsPilot backend (modular monolith)"
 readme = "README.md"
 authors = [
     { name = "awoladhossain", email = "awoladh04@gmail.com" }
@@ -20,12 +20,12 @@ dependencies = [
     "uvicorn[standard]>=0.54.0",
 ]
 
-[project.scripts]
-backend = "backend:main"
+# [project.scripts]
+# backend = "backend:main"
 
-[build-system]
-requires = ["uv_build>=0.12.22,<0.13.0"]
-build-backend = "uv_build"
+# [build-system]
+# requires = ["uv_build>=0.12.22,<0.13.0"]
+# build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
@@ -35,5 +35,28 @@ dev = [
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.16.10",
 ]
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["asyncpg", "asyncpg.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q --cov=app --cov-report=term-missing"
