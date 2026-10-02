@@ -2,6 +2,9 @@
 
 This folder is the single source of truth for OpsPilot documentation. Read the sections in order. The numbered prefixes show the recommended reading sequence.
 
+## 0. Engineering Mastery
+- [🚀 AI Engineer Learning Roadmap](AI-Engineer-Roadmap.md) — Comprehensive 22-step personal learning and study roadmap.
+
 ## 1. Product definition
 
 Start with the problem and requirements, then review product discovery and commercial planning.
