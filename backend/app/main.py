@@ -5,6 +5,7 @@ from fastapi import FastAPI
 app = FastAPI(title="OpsPilot API", version="0.1.0")
 
 
+@app.get("/health", tags=["health"])
 @app.get("/health/live", tags=["health"])
 async def health_live() -> dict[str, str]:
     """Report that the API process is running."""
